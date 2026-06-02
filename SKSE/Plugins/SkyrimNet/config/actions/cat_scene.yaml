@@ -2,3 +2,12 @@ customCategory: scene
 name: Scene Control
 description: "Managing an ongoing encounter — escalate, release, call off, interrupt, inspect, or investigate."
 enabled: true
+
+eligibilityRules:
+  - conditions:
+      - decoratorName: "is_in_combat"
+        arguments: ["currentActor"]
+        comparisonOperator: "=="
+        expectedValue: false
+    logicalOperator: "AND"
+    required: true

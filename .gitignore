@@ -1,5 +1,12 @@
-# ───────────── Dev sources & build tools (NOT shipped to users) ─────────────
-Scripts/Source/
+# ───────────── Papyrus source ─────────────
+# Ship OUR scripts (so others can read / improve / fork the logic), but NOT the third-party
+# compile stubs (Acheron, SexLabFramework, SkyrimNetApi, MfgConsoleFunc, OThread, SKI_ConfigBase, …)
+# which are minimal local declarations of other mods' APIs.
+Scripts/Source/*.psc
+!Scripts/Source/SkyrimNet_Baka*.psc
+!Scripts/Source/SNBakaUI.psc
+
+# ───────────── Build tools (NOT shipped) ─────────────
 compile.bat
 
 # ───────────── Local backups ─────────────
