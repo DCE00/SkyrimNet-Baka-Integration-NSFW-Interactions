@@ -58,7 +58,7 @@ characters striking fitting body language while they speak.
 - PapyrusUtil, MfgFix, powerofthree's Papyrus Extender
 - SexLab, SlaveTats
 - EmoTears4NPCs (+ EmoTearsSpells)
-- A Babo/SLAP animation pack (the paired interaction animations), built with **FNIS / Nemesis / Pandora**
+- A Babo Motion Pack (the paired interaction animations), built with **FNIS / Nemesis / Pandora**
 
 **Optional (degrades gracefully if absent)**
 - Acheron, Flash Games – Struggling QTE, Dynamic Feminine Female Modesty Animations OAR
