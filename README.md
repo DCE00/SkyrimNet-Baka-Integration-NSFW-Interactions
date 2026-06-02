@@ -57,8 +57,8 @@ characters striking fitting body language while they speak.
 - [PrismaUI](https://www.nexusmods.com/skyrimspecialedition/mods/148718)
 - PapyrusUtil, MfgFix, powerofthree's Papyrus Extender
 - SexLab, SlaveTats
-- EmoTears4NPCs (+ EmoTearsSpells)
-- A Babo Motion Pack (the paired interaction animations), built with **FNIS / Nemesis / Pandora**
+- [Emotional Tears Effect (EmoTears)](https://www.nexusmods.com/skyrimspecialedition/mods/122296) — for animated tears
+- [Baka Motion Data Pack](https://www.loverslab.com/files/file/26992-baka-motion-data-pack/) — the paired interaction animations; build with **FNIS / Nemesis / Pandora**
 
 **Optional (degrades gracefully if absent)**
 - Acheron, Flash Games – Struggling QTE, Dynamic Feminine Female Modesty Animations OAR
@@ -91,7 +91,7 @@ MCM (and script properties) expose toggles:
 - **SkyrimNet** — the framework this builds on
 - Paired interaction animations — *Babo / SLAP* animation authors
 - Cover-self reaction — driven by the *Dynamic Feminine Female Modesty Animations OAR* mod (Kahvipannu84 / Gunslicer); install it for that feature (no animations are bundled here)
-- Facial-expression morph values — *Additional Expressions Project*
+- Facial-expression morph values — [Additional Expressions Project](https://www.nexusmods.com/skyrimspecialedition/mods/72337) (optional; the values are baked in, so it isn't required at runtime)
 - Frameworks — SexLab, PrismaUI, PapyrusUtil, MfgFix, po3 Papyrus Extender, SlaveTats, EmoTears4NPCs, Acheron
 
 > Bundled third-party animations/assets remain the property of their original authors and are
