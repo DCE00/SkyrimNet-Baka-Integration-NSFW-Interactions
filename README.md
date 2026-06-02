@@ -21,6 +21,21 @@ poses during roleplay. It hooks into SkyrimNet through custom **actions, trigger
 
 *(add screenshots / a short demo clip here)*
 
+## What to expect
+
+Once everything is installed, your NPCs can — when it fits the scene and their personality —
+**start or be drawn into these interactions on their own**, decided by SkyrimNet's model rather than
+menus or hotkeys. Expect *emergent, unscripted* moments: a dominant NPC spanking someone bent over a
+table, a captor escalating on a defeated victim, faces shifting to fear or pain in the moment, or
+characters striking fitting body language while they speak.
+
+- It is **player- and NPC-targetable** and leans **dark / non-consensual** by design; the tone follows
+  the characters and context you set.
+- Nothing fires at random — give characters fitting personalities and the LLM drives the rest. Master
+  toggles and an intensity slider let you dial it back.
+- It needs several frameworks and an animation pack (see **Requirements**) — without them, the relevant
+  pieces simply do nothing rather than break.
+
 ## Features
 
 - **Physical interactions** the LLM picks contextually:
