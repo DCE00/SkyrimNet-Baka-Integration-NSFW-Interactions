@@ -1,0 +1,19 @@
+# ───────────── Dev sources & build tools (NOT shipped to users) ─────────────
+Scripts/Source/
+compile.bat
+
+# ───────────── Local backups ─────────────
+*.zip
+*.rar
+*.7z
+*.bak
+
+# ───────────── Mod-manager / editor / agent local metadata ─────────────
+meta.ini
+.claude/
+.vscode/
+
+# ───────────── OS cruft ─────────────
+Thumbs.db
+desktop.ini
+.DS_Store

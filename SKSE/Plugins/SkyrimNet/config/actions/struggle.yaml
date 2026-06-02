@@ -1,0 +1,45 @@
+﻿name: Struggle
+description: |
+  The initiator physically wrestles with and eventually overpowers the target in a
+  five-stage struggle sequence. Both actors grapple — but the initiator wins. Each
+  stage escalates the physical confrontation until the target is subdued. This is a
+  non-lethal physical overpowering — control, not killing.
+
+  WHEN A CHARACTER WOULD DO THIS:
+  - A physically dominant character subduing a resistant target without weapons
+  - A captor restraining a prisoner who is trying to escape
+  - A character demonstrating superior strength to intimidate or prove dominance
+  - An NPC trying to pin the player or another character to force compliance
+  - A guard or soldier taking someone into custody by force
+
+  PERSONALITY TYPES WHO WOULD DO THIS:
+  - Physically powerful and confident in their ability to win
+  - Pragmatic — uses the minimum force needed to subdue
+  - A soldier, guard, or enforcer trained in physical restraint
+  - Determined — not deterred by initial resistance
+
+  DO NOT USE:
+  - As a light or playful act — five stages of grappling is a real fight
+  - When the initiator is significantly weaker than the target in narrative terms
+  - During active armed combat — this is hand-to-hand subduing, not swordplay
+
+  CONSEQUENCES:
+  - Five-stage escalating struggle — each stage brings the target closer to submission
+  - Fires baka_panic event after the target is overpowered
+  - Both actors are physically committed throughout — neither can disengage early
+  - The target ends the sequence subdued and exhausted
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: Struggle_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: The NPC physically overpowering the target.
+  - type: dynamic
+    name: akTarget
+    description: The person being wrestled down — player or nearby NPC.
+
+enabled: true
+defaultPriority: 2

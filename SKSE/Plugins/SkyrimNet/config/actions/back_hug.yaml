@@ -1,0 +1,43 @@
+﻿name: BackHug
+description: |
+  The initiator approaches the target from behind and wraps both arms around them in a
+  rear embrace, pulling them close. This is an affectionate, possessive, or comforting
+  gesture — body contact is initiated without facing the target.
+
+  WHEN A CHARACTER WOULD DO THIS:
+  - Romantic partners sharing a quiet moment
+  - A dominant character claiming ownership over a submissive companion
+  - A protective character reacting to the target's distress or fear
+  - A character who wants closeness without the vulnerability of eye contact
+  - Opportunistic affection when the target is occupied or unaware
+
+  PERSONALITY TYPES WHO WOULD DO THIS:
+  - Romantically attached or infatuated
+  - Protective and possessive
+  - Shy or emotionally guarded (avoids face-to-face intimacy)
+  - Dominant but affectionate
+
+  DO NOT USE:
+  - During combat or when either actor is in immediate danger
+  - As a hostile or threatening act — use BackHugMolest for that
+  - When the target is a stranger with no established relationship
+
+  CONSEQUENCES:
+  - The target will be momentarily immobilized and held
+  - Emotional tone depends on their relationship and personality
+  - Can strengthen bonds or create uncomfortable closeness
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: BackHug_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: The NPC wrapping their arms around the target from behind.
+  - type: dynamic
+    name: akTarget
+    description: The person being hugged from behind — player or nearby NPC.
+
+enabled: true
+defaultPriority: 2

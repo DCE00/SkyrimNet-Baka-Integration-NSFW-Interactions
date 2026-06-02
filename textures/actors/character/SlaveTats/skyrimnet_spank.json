@@ -1,0 +1,13 @@
+[
+  { "name": "spank01",     "section": "SkyrimNet Spank", "texture": "skyrimnet_spank\\spank01.dds",     "area": "Body" },
+  { "name": "spank02",     "section": "SkyrimNet Spank", "texture": "skyrimnet_spank\\spank02.dds",     "area": "Body" },
+  { "name": "spank03",     "section": "SkyrimNet Spank", "texture": "skyrimnet_spank\\spank03.dds",     "area": "Body" },
+  { "name": "spank_ass",     "section": "SkyrimNet Spank", "texture": "sta_spanky\\sta_spank_ass_light.dds",     "area": "Body" },
+  { "name": "spank_breasts", "section": "SkyrimNet Spank", "texture": "sta_spanky\\sta_spank_breasts_light.dds", "area": "Body" },
+  { "name": "tears1",        "section": "SkyrimNet Spank", "texture": "sta_spanky\\sta_tears1.dds",              "area": "Face" },
+  { "name": "tears2",        "section": "SkyrimNet Spank", "texture": "sta_spanky\\sta_tears2.dds",              "area": "Face" },
+  { "name": "tears3",        "section": "SkyrimNet Spank", "texture": "sta_spanky\\sta_tears3.dds",              "area": "Face" },
+  { "name": "sob1",          "section": "SkyrimNet Spank", "texture": "sta_spanky\\sta_sob1.dds",               "area": "Face" },
+  { "name": "sob2",          "section": "SkyrimNet Spank", "texture": "sta_spanky\\sta_sob2.dds",               "area": "Face" },
+  { "name": "drool1",        "section": "SkyrimNet Spank", "texture": "sta_spanky\\sta_drool1.dds",             "area": "Face" }
+]

@@ -1,0 +1,45 @@
+﻿name: CallOff
+description: |
+  The initiator voluntarily ends their own ongoing Baka Motion animation —
+  they chose to stop, whether from guilt, external pressure, a change of
+  heart, or pragmatism. The scene ends cleanly. This is self-initiated;
+  the initiator must currently be in an active animation.
+
+  WHEN A CHARACTER WOULD DO THIS:
+  - An NPC who started an interaction but now feels threatened or watched
+  - A character who receives a command or plea and chooses to comply
+  - An initiator who is emotionally affected by the target's reaction
+  - A pragmatic character deciding the risk is not worth continuing
+  - An NPC responding to the player's dialogue or persuasion
+
+  PERSONALITY TYPES WHO WOULD DO THIS:
+  - Cowardly or self-preserving — stops when consequences become real
+  - Guilt-ridden — cannot ignore the victim's distress
+  - Obedient to authority — stops when a superior orders it
+  - Calculating — weighs the risk and decides to abort
+
+  DO NOT USE:
+  - By an actor who is not currently in a Baka Motion animation
+  - As a reflex — this is a deliberate decision with narrative weight
+  - When the initiator would have no reason to stop (use InterruptScene if a third party is forcing the stop)
+
+  CONSEQUENCES:
+  - The animation ends cleanly within one tick (~0.5s)
+  - Both actors return to normal state
+  - Fires baka_calloff event — the victim and any witnesses react to the initiator stopping
+  - The initiator's motivation for stopping becomes a narrative beat
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: CallOff_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: The NPC who started the animation and is now choosing to stop it.
+  - type: dynamic
+    name: akTarget
+    description: The target of the ongoing animation — used for event context.
+
+enabled: true
+defaultPriority: 2

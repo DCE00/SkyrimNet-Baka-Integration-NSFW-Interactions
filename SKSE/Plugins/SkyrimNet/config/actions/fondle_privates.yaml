@@ -1,0 +1,46 @@
+name: FondlePrivates
+description: |
+  Reach between a female character's legs and fondle her intimately. This is the
+  non-resistable variant — used when the target is subdued, willing, or otherwise
+  unable or unlikely to fight back. For a scene where resistance is plausible,
+  use the examine_privates or play_privates actions instead.
+
+  USE WHEN:
+  - The target is already subdued, incapacitated, or in a compliant state (drugged,
+    defeated, in a submissive dynamic).
+  - The scene is consensual or the target's will has already been broken.
+  - During an ongoing sexual or dominant encounter as a natural escalation of touch.
+  - The initiator has established physical control and wants to reinforce it.
+
+  REQUIRES: Target must have a female body.
+
+  CONSEQUENCES:
+  - Compliant/subdued: deepens the power dynamic, intimacy, or humiliation.
+  - Observed: bystanders react to an openly intimate or predatory act.
+
+  DO NOT USE on unwilling targets in situations where resistance would be expected
+  and hasn't been suppressed — use play_privates (resistable) instead.
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: FondlePussy_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: The NPC performing the action
+  - type: dynamic
+    name: akTarget
+    description: The female target being fondled
+
+enabled: true
+defaultPriority: 5
+
+eligibilityRules:
+  - conditions:
+      - decoratorName: "is_in_combat"
+        arguments: ["currentActor"]
+        comparisonOperator: "=="
+        expectedValue: false
+    logicalOperator: "AND"
+    required: true

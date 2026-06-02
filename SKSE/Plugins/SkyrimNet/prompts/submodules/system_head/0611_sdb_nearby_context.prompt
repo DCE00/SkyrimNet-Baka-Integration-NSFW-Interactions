@@ -1,0 +1,4 @@
+{% set furniture_actors = get_nearby_furniture_actors(npc.UUID) %}
+{% if furniture_actors and furniture_actors != "[]" %}
+[Nearby — bent forward at furniture: {{ furniture_actors }}]
+{% endif %}

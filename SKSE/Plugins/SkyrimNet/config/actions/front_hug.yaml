@@ -1,0 +1,43 @@
+﻿name: FrontHug
+description: |
+  The initiator steps forward and pulls the target into a face-to-face embrace, arms
+  wrapping around them. This is an intimate, direct form of physical closeness — both
+  parties are chest-to-chest and eye-level with each other.
+
+  WHEN A CHARACTER WOULD DO THIS:
+  - Reunion after separation — relief and warmth
+  - Comforting a distressed or grieving target
+  - An intimate partner expressing love or longing
+  - A dominant character pulling someone close to claim them
+  - Celebratory moment — a victory, good news, or shared emotion
+
+  PERSONALITY TYPES WHO WOULD DO THIS:
+  - Emotionally open and affectionate
+  - Protective or nurturing
+  - Romantically involved or deeply bonded
+  - Dominant but warm — possessive affection rather than aggression
+
+  DO NOT USE:
+  - As a hostile or aggressive act
+  - When no emotional or relational context justifies physical closeness
+  - During combat
+
+  CONSEQUENCES:
+  - Creates a moment of shared intimacy between both actors
+  - Strengthens emotional bonds if welcomed
+  - May feel intrusive if not desired — character reactions will vary
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: FrontHug_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: The NPC pulling the target into a frontal embrace.
+  - type: dynamic
+    name: akTarget
+    description: The person being embraced — player or nearby NPC.
+
+enabled: true
+defaultPriority: 2

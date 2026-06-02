@@ -1,0 +1,27 @@
+name: "baka_interaction_end"
+description: "A Baka Motion animation has just finished — generate the initiating character's immediate reaction as the physical contact ends and they step back."
+
+eventCriteria:
+  eventType: "baka_interaction_end"
+
+response:
+  type: "direct_narration"
+  content: |
+    {{ originator }} has just finished with {{ target }} — the animation ended and they
+    are stepping back. Generate {{ originator }}'s immediate reaction in one short beat.
+
+    What do they say, do, or express right after? This depends entirely on what just
+    happened: after a tender hug it might be warmth or longing; after a forced act it
+    might be cold satisfaction, dismissal, or quiet threat; after a playful spank it might
+    be a smirk or a laugh. Match the tone of the action that just ended.
+
+    Match {{ originator }}'s personality exactly. Do NOT describe {{ target }}'s reaction.
+    One beat — the first thing out of {{ originator }} after the contact breaks. Keep it
+    concise and emotionally precise.
+
+audience: "nearby_npcs"
+
+enabled: true
+probability: 0.8
+cooldownSeconds: 20
+priority: 6

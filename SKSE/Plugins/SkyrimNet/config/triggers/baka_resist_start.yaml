@@ -1,0 +1,27 @@
+name: "baka_resist_start"
+description: "The player has begun struggling to break free from a forced Baka Motion animation — generate the initiating NPC's reaction to feeling resistance."
+
+eventCriteria:
+  eventType: "baka_resist_start"
+
+response:
+  type: "direct_narration"
+  content: |
+    {{ target }} is fighting back — actively struggling against {{ originator }}'s grip.
+    Generate {{ originator }}'s immediate in-character reaction to feeling resistance.
+
+    This is the moment they realize the target is not going to submit quietly. What do
+    they do? A tightened grip, a sharp word, a threat, a cold laugh, a warning — or do
+    they say nothing and simply hold harder? The reaction must match their personality
+    exactly: a sadist might enjoy the struggle, a cold captor might find it tiresome,
+    a bully might be surprised.
+
+    One beat only. Do NOT describe {{ target }}'s actions — only {{ originator }}'s
+    response to feeling resistance. Keep it sharp and in-character.
+
+audience: "nearby_npcs"
+
+enabled: true
+probability: 0.9
+cooldownSeconds: 45
+priority: 8

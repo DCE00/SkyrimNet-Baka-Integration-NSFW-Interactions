@@ -1,0 +1,28 @@
+name: "baka_panic"
+description: "The target of a Baka Motion action has just been subjected to a non-consensual or violent act — generate the target's immediate panic reaction."
+
+eventCriteria:
+  eventType: "baka_panic"
+
+response:
+  type: "direct_narration"
+  content: |
+    {{ target }} has just been subjected to a non-consensual or violent act by
+    {{ originator }} — they are panicking right now, unable to break free.
+
+    Generate {{ target }}'s immediate reaction in one short beat: what do they say,
+    cry out, or express in this moment of fear and violation? This could be a scream,
+    a desperate plea, a shocked silence, a defiant word through gritted teeth, or
+    dissociation. Match {{ target }}'s personality — a warrior reacts differently than
+    a servant, a hardened criminal differently than a sheltered villager.
+
+    Do NOT generate {{ originator }}'s reaction here — that is their own moment.
+    Do NOT resolve the scene — {{ target }} is still trapped. This is the raw,
+    immediate emotional beat of panic. One line or one action only.
+
+audience: "nearby_npcs"
+
+enabled: true
+probability: 1
+cooldownSeconds: 30
+priority: 8

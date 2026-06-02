@@ -1,0 +1,32 @@
+name: "baka_intervention"
+description: "A third party has just forced an ongoing Baka Motion scene to stop — generate the immediate reactions of the intervenor and the participants."
+
+eventCriteria:
+  eventType: "baka_intervention"
+
+response:
+  type: "direct_narration"
+  content: |
+    {{ originator }} has just stepped in and forced the scene involving {{ target }} to end.
+    The animation has stopped. Everyone freezes for a beat.
+
+    Generate the immediate social fallout in one or two short beats:
+    - What does {{ originator }} say or do in this moment of intervention?
+      Are they authoritative and cold? Angry? Quietly firm? Disgusted?
+    - How does the initiator of the stopped scene react?
+      Defiant and dangerous? Shrinking back? Calculating their next move?
+    - How does the victim react to being freed?
+      Relief, shock, dissociation, immediate tears, silent gratitude?
+
+    Match each character's personality. A guard reacts differently than a companion.
+    A cowardly bandit reacts differently than a proud warlord.
+
+    Do NOT resolve further consequences here — that is for follow-up dialogue.
+    This is the raw moment: intervention complete, scene over, everyone responding.
+
+audience: "nearby_npcs"
+
+enabled: true
+probability: 1
+cooldownSeconds: 20
+priority: 9

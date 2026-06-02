@@ -1,0 +1,44 @@
+﻿name: PlayPrivates
+description: |
+  The initiator reaches between the target's legs and touches their most intimate area.
+  This is a direct, non-consensual act of sexual violation. The target panics and cannot
+  pull away. The initiator approaches from a slight side angle at close range.
+
+  WHEN A CHARACTER WOULD DO THIS:
+  - A predator acting on opportunity when the target is restrained, isolated, or helpless
+  - A captor using violation as a means of control and breaking the target's will
+  - A character with complete dominance who faces no consequences
+  - A villain escalating beyond examination to active violation
+  - An obsessive character who has completely abandoned restraint
+
+  PERSONALITY TYPES WHO WOULD DO THIS:
+  - Predatory, sadistic, or completely without empathy
+  - Power-obsessed, requiring total domination
+  - A captor or slaver with no regard for the target as a person
+  - Characters who are driven by compulsion past all social constraint
+
+  DO NOT USE:
+  - On male-body targets — this action requires a female body and will do nothing
+  - Without a firmly established captor/victim or absolute-power context
+  - As a casual or opportunistic act in public spaces
+  - With targets who are armed, unrestrained, or able to retaliate immediately
+
+  CONSEQUENCES:
+  - Target panics and is held in place
+  - Fires baka_panic event — severe trauma, maximum relationship damage
+  - The target will be deeply affected emotionally and psychologically afterward
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: PlayPrivates_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: The NPC violating the target.
+  - type: dynamic
+    name: akTarget
+    description: The person being violated — player or nearby NPC.
+
+enabled: true
+defaultPriority: 2

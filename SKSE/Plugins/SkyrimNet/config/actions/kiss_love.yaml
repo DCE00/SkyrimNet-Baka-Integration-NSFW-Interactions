@@ -1,0 +1,43 @@
+﻿name: KissLove
+description: |
+  The initiator leans in slowly toward the target and kisses them — a two-stage sequence
+  moving from a gentle lean to a deeper, more intimate kiss. Both actors face each other
+  at close range. This is a fully consensual, tender act.
+
+  WHEN A CHARACTER WOULD DO THIS:
+  - A romantic partner expressing affection or desire
+  - A character in an intimate relationship marking a special moment
+  - Following a meaningful conversation, confession, or shared vulnerability
+  - As a farewell, greeting, or expression of deep connection
+  - In response to the target saying or doing something emotionally significant
+
+  PERSONALITY TYPES WHO WOULD DO THIS:
+  - Romantic and emotionally invested
+  - Passionate, sensual, or loving
+  - Characters who express feelings through physical touch rather than words
+  - Confident enough in their relationship to initiate physical contact
+
+  DO NOT USE:
+  - On strangers or targets with no established closeness
+  - As dominance or coercion — use ForcedKiss for non-consensual intent
+  - When the context is tense, hostile, or argumentative
+
+  CONSEQUENCES:
+  - Deepens the emotional and romantic bond between both actors
+  - Two-stage animation: slow lean-in followed by deeper kiss
+  - Lasting impression on the target — they will remember this moment
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: KissLove_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: The NPC leaning in for the kiss.
+  - type: dynamic
+    name: akTarget
+    description: The person being kissed — player or nearby NPC.
+
+enabled: true
+defaultPriority: 2

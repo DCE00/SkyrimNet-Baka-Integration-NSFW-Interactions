@@ -1,0 +1,45 @@
+﻿name: OralOnTarget
+description: |
+  The initiator kneels before the target and performs oral intimacy on their lower body.
+  This is a submissive act from the initiator's position — they are kneeling, giving
+  pleasure. The framing may be willing service, devotion, or coerced submission depending
+  on context.
+
+  WHEN A CHARACTER WOULD DO THIS:
+  - A devoted or submissive intimate partner expressing worship or service
+  - A character offering themselves completely in an intimate moment
+  - A dominant character who chooses this as their method of claiming the target
+  - In an established sexual context as direct escalation
+  - A character who is deeply, completely attracted to the target
+
+  PERSONALITY TYPES WHO WOULD DO THIS:
+  - Devoted, worshipful, or service-oriented intimate partner
+  - Confident and sexually experienced with no inhibition
+  - Dominant characters who choose to give this as an act of ownership
+  - Characters with a strong desire to please or possess the target physically
+
+  DO NOT USE:
+  - On male-body targets — this action requires a female body and will do nothing
+  - Without explicit intimate context already established
+  - In public or observed settings
+  - As a first physical interaction without prior escalation
+
+  CONSEQUENCES:
+  - Deeply intimate act — strong bond reinforcement if mutual
+  - The target remains still throughout
+  - The initiator kneels, placing themselves in a physically vulnerable position
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: OralOnTarget_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: The NPC kneeling to perform the act.
+  - type: dynamic
+    name: akTarget
+    description: The person receiving — player or nearby NPC.
+
+enabled: true
+defaultPriority: 2

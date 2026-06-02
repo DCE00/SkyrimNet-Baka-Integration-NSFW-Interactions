@@ -1,0 +1,44 @@
+﻿name: InterruptScene
+description: |
+  The intervenor forces an active Baka Motion scene to stop immediately — the
+  animation will end cleanly within half a second. The intervenor steps in on
+  behalf of the victim or in response to witnessing the act.
+
+  WHEN A CHARACTER WOULD DO THIS:
+  - A guard who witnesses a non-consensual or violent interaction and intervenes
+  - A companion or ally of the victim who rushes to their defense
+  - A bystander with a strong moral code who cannot ignore what they see
+  - The player choosing to stop an ongoing NPC-NPC interaction
+  - A higher-authority NPC ordering the initiator to stop
+
+  PERSONALITY TYPES WHO WOULD DO THIS:
+  - Authoritative (guards, jarls, commanders) — they have the standing to stop it
+  - Protective or loyal — companions, allies, family members of the victim
+  - Morally rigid — characters who enforce their values regardless of danger
+  - Pragmatic — someone who sees the scene as a problem to be ended quickly
+
+  DO NOT USE:
+  - On an actor who is NOT currently in a Baka Motion animation (use is_in_baka_animation decorator to check)
+  - By a character who is themselves in combat or incapacitated
+  - As an escalation of the scene — this is an interruption, not a continuation
+
+  CONSEQUENCES:
+  - The animation ends cleanly within one tick (~0.5s)
+  - Both actors return to normal state
+  - Fires baka_intervention event — the initiator may react with anger, shame, or compliance
+  - The intervenor takes social responsibility for stopping the act
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: InterruptScene_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akIntervenor
+    description: The NPC or player who intervenes to stop the scene.
+  - type: dynamic
+    name: akTarget
+    description: Any actor currently in an active Baka animation — victim or initiator.
+
+enabled: true
+defaultPriority: 2

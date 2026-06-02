@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="512" viewBox="0 0 1024 512" font-family="Georgia, 'Times New Roman', serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#161318"/>
+      <stop offset="55%" stop-color="#241016"/>
+      <stop offset="100%" stop-color="#3a0d16"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="42%" r="60%">
+      <stop offset="0%" stop-color="#b8324c" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#b8324c" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ink" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f4e9ea"/>
+      <stop offset="100%" stop-color="#d7c3c6"/>
+    </linearGradient>
+  </defs>
+
+  <!-- background -->
+  <rect width="1024" height="512" rx="28" fill="url(#bg)"/>
+  <rect width="1024" height="512" rx="28" fill="url(#glow)"/>
+  <rect x="14" y="14" width="996" height="484" rx="20" fill="none" stroke="#c0445c" stroke-opacity="0.55" stroke-width="2"/>
+  <rect x="22" y="22" width="980" height="468" rx="16" fill="none" stroke="#c0445c" stroke-opacity="0.18" stroke-width="1"/>
+
+  <!-- top label -->
+  <text x="512" y="150" text-anchor="middle" fill="#e7b7c0" letter-spacing="14"
+        font-size="34" font-weight="bold" opacity="0.9">S K Y R I M N E T</text>
+
+  <!-- main title -->
+  <text x="512" y="300" text-anchor="middle" fill="url(#ink)"
+        font-size="180" font-weight="bold" letter-spacing="6"
+        style="paint-order:stroke;stroke:#7a0f22;stroke-width:6px">BAKA</text>
+
+  <!-- accent slashes flanking subtitle -->
+  <line x1="300" y1="356" x2="724" y2="356" stroke="#c0445c" stroke-opacity="0.5" stroke-width="2"/>
+
+  <!-- subtitle -->
+  <text x="512" y="392" text-anchor="middle" fill="#f0dadd" letter-spacing="20"
+        font-size="40" font-weight="bold">INTEGRATION</text>
+
+  <!-- tag -->
+  <text x="512" y="448" text-anchor="middle" fill="#c79aa2" letter-spacing="6"
+        font-size="22" font-style="italic">an NSFW SkyrimNet addon</text>
+</svg>

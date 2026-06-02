@@ -1,0 +1,34 @@
+name: pose_casual
+description: |
+  The speaker shifts into a relaxed, natural standing pose for a few seconds — easy weight
+  shift, a light hand gesture, an idle conversational stance.
+
+  USE WHEN: a calm, everyday moment — chatting, waiting, listening, gesturing while talking, or
+  just standing at ease. The neutral default when no stronger emotion or intent fits.
+
+  Body language only — no dialogue. Held briefly, then they relax. Picks a random pose from a
+  casual set, so it varies between characters.
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: PoseCasual_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: The character striking the pose
+  - type: dynamic
+    name: akTarget
+    description: Who they are addressing (optional context; not required)
+
+enabled: true
+defaultPriority: 1
+
+eligibilityRules:
+  - conditions:
+      - decoratorName: "is_in_combat"
+        arguments: ["currentActor"]
+        comparisonOperator: "=="
+        expectedValue: false
+    logicalOperator: "AND"
+    required: true

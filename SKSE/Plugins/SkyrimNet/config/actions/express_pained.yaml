@@ -1,0 +1,23 @@
+name: express_pained
+description: |
+  The speaker's face contorts in pain — clenched, grimacing, hurt — for a few seconds.
+
+  USE WHEN: the speaker is in physical pain or discomfort right now — struck, injured,
+  restrained roughly, exhausted, or enduring something that hurts.
+
+  Purely a facial expression — no body movement, no dialogue. It fades on its own.
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: ExpressPained_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: The character whose face shows the expression
+  - type: dynamic
+    name: akTarget
+    description: Who they are reacting to (optional context; not required)
+
+enabled: true
+defaultPriority: 2

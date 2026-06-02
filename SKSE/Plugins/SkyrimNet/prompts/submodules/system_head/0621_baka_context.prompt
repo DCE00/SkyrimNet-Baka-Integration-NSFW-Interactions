@@ -1,0 +1,5 @@
+{# SkyrimNet_BakaIntegration — Baka Motion ambient context injected into system head. #}
+{% set baka = get_baka_state(npc.UUID) %}
+{% if baka and baka.in_baka_animation %}
+[{{ npc.name }} is currently held in a Baka Motion animation with {{ baka.last_baka_partner }} — they cannot move, speak freely, or take other actions until it ends.]
+{% endif %}

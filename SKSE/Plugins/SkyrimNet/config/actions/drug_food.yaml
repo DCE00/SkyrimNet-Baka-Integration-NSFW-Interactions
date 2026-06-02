@@ -1,0 +1,63 @@
+name: DrugFood
+description: |
+  Offer a character drugged or laced food, causing them to consume it and become
+  incapacitated. The initiator produces or hands over the food; the target eats it
+  and gradually succumbs. This is a slow, insidious action — deception, not force.
+
+  ── PERPETRATOR (akInitiator) ──
+  You know the food is drugged. Play it casual and deceptive:
+  - Offer it naturally — a kind gesture, a generous host, a merchant with a "sample."
+  - Do NOT hint at what you've done. Your tone is ordinary, even warm.
+  - As the effects begin, watch with quiet satisfaction, predatory patience, or cold
+    calculation — but keep that hidden from bystanders.
+  - If the victim comments on feeling unwell, deflect: "You've been working too hard,"
+    "The ale here is strong," "Sit, it will pass." You do not confirm anything.
+  - You are in control. Stay calm. The plan is working.
+
+  ── VICTIM (akTarget) ──
+  You do NOT know you were drugged. You ate or drank something that seemed normal.
+  Now something is wrong with your body — but you don't know why:
+  - React with confusion and growing alarm: "I feel... strange," "The room is moving,"
+    "My legs won't..." — physical disorientation, not accusation.
+  - You are NOT angry at the initiator yet. You don't know it was them. You are scared
+    by what's happening to your own body.
+  - Grip a table, wall, or your head. Slur your words slightly. Vision blurs.
+  - You might look at the initiator for help — you trust them, or at least don't
+    suspect them yet.
+  - As you collapse: fading confusion, not rage. "Something is... wrong..."
+
+  ── BYSTANDERS ──
+  React with alarm to a person suddenly becoming incoherent and collapsing — call for
+  help, look for a cause. The perpetrator may attempt to explain it away.
+
+  ── WHEN TO USE ──
+  - The initiator is scheming, predatory, or has established deceptive intent.
+  - There is a food/drink context: tavern, camp meal, dinner, vendor offering a sample.
+  - The initiator wants to incapacitate without direct confrontation.
+
+  DO NOT USE if there is no plausible food/drink context, or if the initiator has no
+  access to the target or no motivation to drug rather than confront directly.
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: DrugFood_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: The NPC administering the drugged food — plays casual and deceptive
+  - type: dynamic
+    name: akTarget
+    description: The person consuming the food — feels dizzy and confused, does not know why
+
+enabled: true
+defaultPriority: 3
+
+eligibilityRules:
+  - conditions:
+      - decoratorName: "is_in_combat"
+        arguments: ["currentActor"]
+        comparisonOperator: "=="
+        expectedValue: false
+    logicalOperator: "AND"
+    required: true

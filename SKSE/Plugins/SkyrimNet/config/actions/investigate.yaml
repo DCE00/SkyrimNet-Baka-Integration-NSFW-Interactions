@@ -1,0 +1,46 @@
+﻿name: Investigate
+description: |
+  The initiator conducts a thorough three-stage investigative inspection of the target —
+  methodical, clinical, and invasive. Each stage examines a different aspect of the target's
+  body. The target panics and cannot resist. This differs from CapturedInspect in tone:
+  the initiator is gathering information or performing due diligence, not merely degrading.
+
+  WHEN A CHARACTER WOULD DO THIS:
+  - A mage or scholar examining a captive for magical properties or physical traits
+  - A guard or authority figure conducting a humiliating search for contraband
+  - A clinical or detached character performing an inspection without emotion
+  - A character who frames violation as duty or procedure rather than cruelty
+  - An interrogator gathering physical evidence or performing a medical-style assessment
+
+  PERSONALITY TYPES WHO WOULD DO THIS:
+  - Clinical, methodical, and detached — this is business, not pleasure
+  - An authority figure who hides cruelty behind procedural language
+  - A scholar or inquisitor who reduces the target to a subject of study
+  - Cold and professional — no obvious sadism, but equally no compassion
+
+  DO NOT USE:
+  - On male-body targets — this investigation involves intimate anatomical inspection and requires a female body
+  - Without a clear authority or procedural framing
+  - As an impulsive act — this is deliberate and staged
+  - In non-captive or non-power-over contexts
+
+  CONSEQUENCES:
+  - Three-stage progressive inspection animation
+  - Target panics throughout — they know exactly what is happening
+  - Fires baka_panic event — deep psychological violation dressed as procedure
+  - The clinical tone makes this especially dehumanizing
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: Investigate_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: The NPC performing the investigation.
+  - type: dynamic
+    name: akTarget
+    description: The person being investigated — player or nearby NPC.
+
+enabled: true
+defaultPriority: 2

@@ -1,0 +1,34 @@
+name: pose_demure
+description: |
+  The speaker adopts a shy, modest, or pensive pose for a few seconds — hands clasped, a coy
+  or bashful posture, or a thoughtful hand-to-chin.
+
+  USE WHEN: the speaker feels shy, timid, embarrassed, demure, or is thinking something over —
+  uncertain, self-conscious, deferential, or quietly considering before answering.
+
+  Body language only — no dialogue. Held briefly, then they relax. Picks a random pose from a
+  demure/pensive set, so it varies between characters.
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: PoseDemure_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: The character striking the pose
+  - type: dynamic
+    name: akTarget
+    description: Who they are reacting to (optional context; not required)
+
+enabled: true
+defaultPriority: 2
+
+eligibilityRules:
+  - conditions:
+      - decoratorName: "is_in_combat"
+        arguments: ["currentActor"]
+        comparisonOperator: "=="
+        expectedValue: false
+    logicalOperator: "AND"
+    required: true

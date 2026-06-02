@@ -1,0 +1,42 @@
+{# SkyrimNet_BakaIntegration — Baka Motion interaction history injected into character bio. #}
+{% if render_mode == "full" or render_mode == "thoughts" or render_mode == "book" or render_mode == "transform" %}
+{% set baka = get_baka_state(actorUUID) %}
+{% if baka %}
+{% if baka.in_baka_animation %}
+### Physical State (Baka Motion — Active)
+- Currently held in a Baka Motion animation with {{ baka.last_baka_partner }}. Cannot move freely. Full attention is on what is happening right now.
+{% elif baka.last_baka_animation and baka.last_baka_animation != "" %}
+### Physical State (Baka Motion — Recent)
+{% set anim = baka.last_baka_animation %}
+{% if anim == "BackHug" or anim == "FrontHug" %}
+- Was recently held in an embrace by {{ baka.last_baka_partner }}. Physical warmth of contact may linger; emotional tone depends on how they feel about them.
+{% elif anim == "BackHugMolest" %}
+- Was grabbed from behind by {{ baka.last_baka_partner }} without consent. Adrenaline still present. Body tense, hyperaware of surroundings.
+{% elif anim == "KissLove" %}
+- Was just kissed by {{ baka.last_baka_partner }}. The intimacy is fresh — still processing the emotion of it.
+{% elif anim == "ForcedKiss" %}
+- Was forcibly kissed by {{ baka.last_baka_partner }}. The violation is recent and raw. Anger, shame, or fear colors everything right now.
+{% elif anim == "TouchBreasts" or anim == "SuckBreasts" %}
+- Was touched intimately by {{ baka.last_baka_partner }}. Residual physical awareness; emotional reaction depends on whether this was welcomed.
+{% elif anim == "ExaminePrivates" or anim == "PlayPrivates" %}
+- Was violated intimately by {{ baka.last_baka_partner }}. Deeply shaken. This is not something that fades quickly.
+{% elif anim == "OralOnTarget" %}
+- Received intimate oral contact from {{ baka.last_baka_partner }}. Physical sensation is recent; emotional context defines how they carry it.
+{% elif anim == "Spanking" or anim == "WombHit" %}
+- Was struck by {{ baka.last_baka_partner }}. Sting or pain is still present. Mood affected by humiliation, anger, or residual fear.
+{% elif anim == "Flirt" %}
+- Was asked to display themselves for {{ baka.last_baka_partner }}. Depending on their personality: flattering, awkward, or humiliating.
+{% elif anim == "CapturedInspect" or anim == "Investigate" %}
+- Was subjected to a full-body forced inspection by {{ baka.last_baka_partner }}. Profound sense of violation and exposure. Not easily recovered from.
+{% elif anim == "Struggle" %}
+- Was physically overpowered and pinned by {{ baka.last_baka_partner }}. Body still carrying the exhaustion and bruising of the struggle.
+{% elif anim == "ChokeHug" %}
+- Was choked by {{ baka.last_baka_partner }}. Throat tender. The terror of that grip is immediate and visceral in memory.
+{% elif anim == "DrunkExploit" %}
+- Was taken advantage of in an incapacitated state by {{ baka.last_baka_partner }}. Memory of the event may be fragmented. Confusion and a creeping sense of wrongness.
+{% else %}
+- Recently involved in a Baka Motion interaction with {{ baka.last_baka_partner }}.
+{% endif %}
+{% endif %}
+{% endif %}
+{% endif %}

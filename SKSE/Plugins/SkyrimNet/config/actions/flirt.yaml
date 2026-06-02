@@ -1,0 +1,47 @@
+name: Flirt
+description: |
+  YOU (the speaker) ask for, command, or savor a display from the target — they pose and show
+  themselves off for you while you watch and react. This is the one action where the visible
+  performance is done by the TARGET, not you.
+
+  ROLE — READ CAREFULLY: You are the one DIRECTING and APPRECIATING, not performing. The target's
+  posing is handled automatically by the game. Speak and act ONLY as yourself: your request, your
+  teasing command, your reaction to what you see. DO NOT write the target's dialogue, thoughts, or
+  movements, and DO NOT speak as them — they are a separate character who will respond on their own.
+
+  WHEN A CHARACTER WOULD DO THIS:
+  - Attracted to the target and wanting to see them show off
+  - A dominant character commanding a display from a submissive target
+  - A playful, flirtatious NPC openly enjoying the target's appearance
+  - A wealthy or powerful character who expects to be entertained
+  - A light, flirtatious exchange where both parties are at ease
+
+  PERSONALITY TYPES WHO WOULD DO THIS:
+  - Flirtatious and openly appreciative of the target's appearance
+  - Confident enough to ask or demand a display without embarrassment
+  - Playful and socially dominant — directs others rather than touching
+
+  DO NOT USE:
+  - In tense, hostile, or dangerous situations
+  - When the target has no reason to comply or display willingly
+  - As a prelude to violence — this is purely social and appreciative
+
+  CONSEQUENCES:
+  - A two-stage display FROM THE TARGET — they pose and hold it (automatic)
+  - No physical contact — entirely visual and performative
+  - Can deepen flirtatious tension or feel humiliating depending on context
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: Flirt_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: YOU — the one watching and directing the display. Voice only this character.
+  - type: dynamic
+    name: akTarget
+    description: The other character who performs the display (automatically). Do not voice them here.
+
+enabled: true
+defaultPriority: 2
