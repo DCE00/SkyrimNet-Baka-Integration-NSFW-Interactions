@@ -1,0 +1,4 @@
+customCategory: scene
+name: Scene Control
+description: "Managing an ongoing encounter — escalate, release, call off, interrupt, inspect, or investigate."
+enabled: true

@@ -5,7 +5,7 @@
 <h1 align="center">SkyrimNet Baka Integration — NSFW Interactions</h1>
 
 <p align="center">
-  <em>LLM-driven physical &amp; intimate interactions, facial expressions, and pose emotes for
+  <em>LLM-driven physical &amp; intimate interactions and facial expressions for
   <a href="https://www.nexusmods.com/skyrimspecialedition/mods/146908">SkyrimNet</a>.</em>
 </p>
 
@@ -16,8 +16,8 @@
 ## What it does
 
 This is an addon for **SkyrimNet** — it lets the AI driving your NPCs choose, in context, to
-perform physical and intimate actions, react with facial expressions, and strike body-language
-poses during roleplay. It hooks into SkyrimNet through custom **actions, triggers, and decorators**.
+perform physical and intimate actions and react with facial expressions during roleplay. It hooks
+into SkyrimNet through custom **actions, triggers, and decorators**.
 
 *(add screenshots / a short demo clip here)*
 
@@ -47,7 +47,6 @@ characters striking fitting body language while they speak.
 - **Facial expressions** — happy / angry / afraid / sad / pained / surprised / confused
   - LLM-triggerable *and* automatic in-scene (fear in a struggle, pain on a choke / bleedout, sadness while crying)
   - Adjustable intensity
-- **Pose emotes** — confident / casual / demure / seductive / presenting / kneeling, random-picked so NPCs vary
 - **Reactions** — animated tears, face / tear overlays that survive sex scenes, cover-self after a spank
 - **PrismaUI menus** for choosing interactions and setting up encounters
 
@@ -59,7 +58,7 @@ characters striking fitting body language while they speak.
 - PapyrusUtil, MfgFix, powerofthree's Papyrus Extender
 - SexLab, SlaveTats
 - EmoTears4NPCs (+ EmoTearsSpells)
-- A Babo/SLAP animation pack + Hexed Poses, built with **FNIS / Nemesis / Pandora**
+- A Babo/SLAP animation pack (the paired interaction animations), built with **FNIS / Nemesis / Pandora**
 
 **Optional (degrades gracefully if absent)**
 - Acheron, Flash Games – Struggling QTE, Dynamic Feminine Female Modesty Animations OAR
@@ -68,20 +67,20 @@ characters striking fitting body language while they speak.
 
 1. Install all requirements above.
 2. Install this mod with your mod manager (MO2/Vortex), let it win conflicts for its own files.
-3. Run **FNIS / Nemesis / Pandora** to generate the bundled paired animations &amp; poses.
+3. Run **FNIS / Nemesis / Pandora** to generate the bundled paired animations.
 4. Launch once so SkyrimNet loads the bundled action configs (`SKSE/Plugins/SkyrimNet/config/`).
 
 ## Configuration
 
 MCM (and script properties) expose toggles:
-- `bExpressionsEnabled`, `bPosesEnabled` — feature master switches
+- Scene framework selector (Auto / SexLab / OStim)
+- `bExpressionsEnabled` — facial-expression master switch
 - `fExpressionIntensity` (0.0–1.0) — how strong faces look
-- `fPoseHoldTime` — seconds a pose is held
 - spank cooldowns, male-target / player-target allowances, animated tears, etc.
 
 ## Notes & tips
 
-- Run **Pandora / FNIS / Nemesis** after installing, or the paired animations and poses will T-pose.
+- Run **Pandora / FNIS / Nemesis** after installing, or the paired animations will T-pose.
 - Faces feel too strong or too flat? Adjust **`fExpressionIntensity`** (0.0–1.0) — there's no single right value, it depends on your follower/face setup.
 - Actions are chosen by SkyrimNet's model **in context** — give your characters fitting personalities and dispositions, and the scene mostly drives itself. The action descriptions tell the model *when* each one fits.
 - After updating, **reload SkyrimNet's config** (or restart) so new/changed actions are picked up.
@@ -91,7 +90,6 @@ MCM (and script properties) expose toggles:
 
 - **SkyrimNet** — the framework this builds on
 - Paired interaction animations — *Babo / SLAP* animation authors
-- Pose emotes — **Hexed Poses**
 - Cover-self reaction — driven by the *Dynamic Feminine Female Modesty Animations OAR* mod (Kahvipannu84 / Gunslicer); install it for that feature (no animations are bundled here)
 - Facial-expression morph values — *Additional Expressions Project*
 - Frameworks — SexLab, PrismaUI, PapyrusUtil, MfgFix, po3 Papyrus Extender, SlaveTats, EmoTears4NPCs, Acheron

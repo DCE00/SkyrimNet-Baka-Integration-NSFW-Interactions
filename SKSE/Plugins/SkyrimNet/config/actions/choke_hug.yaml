@@ -22,3 +22,4 @@ parameterMapping:
 
 enabled: true
 defaultPriority: 2
+customCategory: grab

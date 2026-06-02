@@ -42,3 +42,4 @@ parameterMapping:
 
 enabled: true
 defaultPriority: 2
+customCategory: scene

@@ -50,3 +50,5 @@ parameterMapping:
 
 enabled: true
 defaultPriority: 9
+
+customCategory: scene
