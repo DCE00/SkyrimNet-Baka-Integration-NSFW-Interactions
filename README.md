@@ -53,16 +53,16 @@ characters striking fitting body language while they speak.
 ## Requirements
 
 **Core**
-- [SkyrimNet](https://goncalo22.github.io/SkyrimNet-GamePlugin/Installation%20Guide/skyrimnet-installation/) (+ SKSE64, Address Library)
+- [SkyrimNet](https://goncalo22.github.io/SkyrimNet-GamePlugin/Installation%20Guide/skyrimnet-installation/) (+ SKSE64, [Address Library](https://www.nexusmods.com/skyrimspecialedition/mods/32444))
 - [PrismaUI](https://www.nexusmods.com/skyrimspecialedition/mods/148718)
-- PapyrusUtil, MfgFix, powerofthree's Papyrus Extender
-- SlaveTats
+- [PapyrusUtil](https://www.nexusmods.com/skyrimspecialedition/mods/13048), [MfgFix](https://www.nexusmods.com/skyrimspecialedition/mods/11669), [powerofthree's Papyrus Extender](https://www.nexusmods.com/skyrimspecialedition/mods/22854)
+- [SlaveTats](https://www.loverslab.com/files/file/619-slavetats/)
 - **A sex framework for escalation scenes — SexLab _or_ OStim.** Pick it in the MCM (Auto uses whichever is installed). Neither is a hard requirement; without one, escalation just won't start a scene.
 - [Emotional Tears Effect (EmoTears)](https://www.nexusmods.com/skyrimspecialedition/mods/122296) — for animated tears
 - [Baka Motion Data Pack](https://www.loverslab.com/files/file/26992-baka-motion-data-pack/) — the paired interaction animations; build with **FNIS / Nemesis / Pandora**
 
 **Optional (degrades gracefully if absent)**
-- Acheron, Flash Games – Struggling QTE, Dynamic Feminine Female Modesty Animations OAR
+- [Acheron](https://www.nexusmods.com/skyrimspecialedition/mods/108159), [Flash Games – Struggling QTE](https://www.nexusmods.com/skyrimspecialedition/mods/121909), [Dynamic Feminine Female Modesty Animations OAR](https://www.nexusmods.com/skyrimspecialedition/mods/104374)
 
 ## Installation
 
