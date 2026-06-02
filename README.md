@@ -6,7 +6,7 @@
 
 <p align="center">
   <em>LLM-driven physical &amp; intimate interactions and facial expressions for
-  <a href="https://www.nexusmods.com/skyrimspecialedition/mods/146908">SkyrimNet</a>.</em>
+  <a href="https://goncalo22.github.io/SkyrimNet-GamePlugin/Installation%20Guide/skyrimnet-installation/">SkyrimNet</a>.</em>
 </p>
 
 > ⚠️ **Adult content (18+).** This addon adds non-consensual / NSFW interactions. Use responsibly.
@@ -43,7 +43,7 @@ characters striking fitting body language while they speak.
   - Grab hold, choke hold, struggle — paired animations with a resist QTE
   - Drug-food &amp; drunk exploit (incapacitate), womb hit
   - Forced kiss, fondle, touch / suck breasts, oral, examine / inspect
-- **Escalation → SexLab** aggressive scenes, with defeat / bleedout &amp; recovery
+- **Escalation → SexLab or OStim** aggressive scenes, with defeat / bleedout &amp; recovery
 - **Facial expressions** — happy / angry / afraid / sad / pained / surprised / confused
   - LLM-triggerable *and* automatic in-scene (fear in a struggle, pain on a choke / bleedout, sadness while crying)
   - Adjustable intensity
@@ -53,10 +53,11 @@ characters striking fitting body language while they speak.
 ## Requirements
 
 **Core**
-- SkyrimNet (+ SKSE64, Address Library)
+- [SkyrimNet](https://goncalo22.github.io/SkyrimNet-GamePlugin/Installation%20Guide/skyrimnet-installation/) (+ SKSE64, Address Library)
 - [PrismaUI](https://www.nexusmods.com/skyrimspecialedition/mods/148718)
 - PapyrusUtil, MfgFix, powerofthree's Papyrus Extender
 - SlaveTats
+- **A sex framework for escalation scenes — SexLab _or_ OStim.** Pick it in the MCM (Auto uses whichever is installed). Neither is a hard requirement; without one, escalation just won't start a scene.
 - [Emotional Tears Effect (EmoTears)](https://www.nexusmods.com/skyrimspecialedition/mods/122296) — for animated tears
 - [Baka Motion Data Pack](https://www.loverslab.com/files/file/26992-baka-motion-data-pack/) — the paired interaction animations; build with **FNIS / Nemesis / Pandora**
 
