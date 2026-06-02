@@ -1,0 +1,28 @@
+name: "baka_interaction_start"
+description: "An NPC has just initiated a Baka Motion animation on another character — generate their immediate in-character reaction at the moment it begins."
+
+eventCriteria:
+  eventType: "baka_interaction_start"
+
+response:
+  type: "direct_narration"
+  content: |
+    {{ originator }} has just initiated physical contact with {{ target }} — the animation
+    is beginning right now. Generate {{ originator }}'s immediate in-character beat at
+    the moment they make their move: a word, a breath, a look, or one short line.
+
+    The tone must match the specific action and {{ originator }}'s personality exactly.
+    Gentle hugs feel different from forced grabs. A romantic kiss differs from a chokehold.
+    Read the context: is this affection, dominance, violation, playfulness, or cruelty?
+
+    Do NOT describe what {{ target }} is doing — their reaction comes naturally from
+    the conversation. Do NOT narrate the animation in third person — speak or act as
+    {{ originator }} in first person or through their immediate physical expression.
+    One beat only. Make it sharp and character-true.
+
+audience: "nearby_npcs"
+
+enabled: true
+probability: 1
+cooldownSeconds: 15
+priority: 7

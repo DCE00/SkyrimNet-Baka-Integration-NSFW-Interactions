@@ -1,0 +1,27 @@
+name: "sdb_spanked"
+description: "The spanker reacts immediately after landing a spank or breast slap"
+
+eventCriteria:
+  eventType: "sdb_spanked"
+
+response:
+  type: "direct_narration"
+  content: |
+    {{ originator }} just spanked {{ target }}. Generate their immediate reaction in one
+    short beat — a word, a sound, a look, or one line. Match their personality exactly.
+
+    If this happened during an aggressive or non-consensual sexual encounter: the reaction
+    should reflect dominance, cruelty, ownership, or satisfaction — and the character
+    should feel the urge to do it again soon. A grunt of approval, a murmured threat, a
+    possessive grip — something that signals this is not over, just paused.
+
+    If this happened outside of sex: dominance, amusement, desire, or casual indifference.
+
+    Do not describe {{ target }}'s reaction here — that comes from the conversation naturally.
+
+audience: "nearby_npcs"
+
+enabled: true
+probability: 1
+cooldownSeconds: 15
+priority: 7

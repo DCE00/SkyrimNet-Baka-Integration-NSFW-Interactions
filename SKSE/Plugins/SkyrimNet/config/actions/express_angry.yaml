@@ -1,0 +1,24 @@
+name: express_angry
+description: |
+  The speaker's face hardens into anger — a glare, furrowed brow, clenched jaw — for a few
+  seconds.
+
+  USE WHEN: the speaker feels anger, irritation, contempt, or hostility toward someone or
+  something right now — being insulted, threatened, disrespected, defied, or provoked.
+
+  Purely a facial expression — no body movement, no dialogue. It fades on its own.
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: ExpressAngry_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: The character whose face shows the expression
+  - type: dynamic
+    name: akTarget
+    description: Who they are reacting to (optional context; not required)
+
+enabled: true
+defaultPriority: 2

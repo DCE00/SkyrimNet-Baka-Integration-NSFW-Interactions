@@ -1,0 +1,24 @@
+﻿name: TouchBreasts
+description: |
+  The initiator reaches forward and fondles the target's breasts with their hands.
+  A sexual, intimate act — manual stimulation of the chest. NOT a grip, choke, or restraint.
+  The target faces the initiator. Only works on female-body targets.
+
+  Use to express physical desire, sexual dominance, or ownership in an intimate moment.
+  Do not use on male-body targets (silently does nothing), during combat, or without
+  prior intimate context. This is not violent — it is a deliberate sexual caress.
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: TouchBreasts_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: The NPC reaching to touch the target's chest.
+  - type: dynamic
+    name: akTarget
+    description: The person being touched — player or nearby NPC.
+
+enabled: true
+defaultPriority: 2

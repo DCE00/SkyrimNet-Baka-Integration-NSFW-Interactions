@@ -1,0 +1,24 @@
+﻿name: SuckBreasts
+description: |
+  The initiator leans in and performs oral contact on the target's breasts — licking and
+  sucking. More intense than touching. A deeply sexual act at very close range.
+  Only works on female-body targets.
+
+  Use as escalation after prior intimate contact in a private setting. Not a first act.
+  Do not use on male-body targets (silently does nothing), in public, or without
+  established intimacy. This is sexual, not violent — no grip or restraint involved.
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: SuckBreasts_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: The NPC performing oral contact on the target's chest.
+  - type: dynamic
+    name: akTarget
+    description: The person receiving contact — player or nearby NPC.
+
+enabled: true
+defaultPriority: 2

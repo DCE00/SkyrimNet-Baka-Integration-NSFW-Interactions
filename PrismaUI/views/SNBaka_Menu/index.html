@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SNBaka Menu</title>
+  <style>
+    /* ── Reset ──────────────────────────────────────── */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0; padding: 0;
+      user-select: none;
+    }
+
+    body {
+      width: 100vw; height: 100vh;
+      overflow: hidden;
+      background: transparent;
+      font-family: 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
+    }
+
+    /* ── Backdrop ────────────────────────────────────── */
+    #backdrop {
+      position: fixed; inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.45);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.22s ease;
+    }
+    #backdrop.visible {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    /* ── Panel ───────────────────────────────────────── */
+    #panel {
+      zoom: 1.5;
+      position: relative;
+      min-width: 380px;
+      max-width: 460px;
+      width: 420px;
+      background:
+        linear-gradient(160deg,
+          rgba(10, 8, 5, 0.97) 0%,
+          rgba(18, 13, 6, 0.97) 100%);
+      border: 1px solid rgba(139, 105, 20, 0.55);
+      box-shadow:
+        0 0 0 1px rgba(196, 162, 72, 0.08),
+        0 12px 48px rgba(0, 0, 0, 0.85),
+        inset 0 0 60px rgba(0, 0, 0, 0.4);
+      transform: translateY(-10px) scale(0.99);
+      opacity: 0;
+      transition: transform 0.22s ease, opacity 0.22s ease;
+    }
+    #backdrop.visible #panel {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+
+    /* Gold corner accents */
+    #panel::before,
+    #panel::after {
+      content: '';
+      position: absolute;
+      width: 14px; height: 14px;
+      border-color: rgba(196, 162, 72, 0.6);
+      border-style: solid;
+      pointer-events: none;
+      z-index: 1;
+    }
+    #panel::before {
+      top: -1px; left: -1px;
+      border-width: 2px 0 0 2px;
+    }
+    #panel::after {
+      bottom: -1px; right: -1px;
+      border-width: 0 2px 2px 0;
+    }
+
+    /* ── Header ──────────────────────────────────────── */
+    .panel-header {
+      padding: 13px 18px 11px;
+      border-bottom: 1px solid rgba(196, 162, 72, 0.18);
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .header-icon {
+      color: rgba(196, 162, 72, 0.7);
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+    .header-label {
+      color: rgba(200, 185, 140, 0.55);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    .header-target {
+      color: #d4b86a;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      flex: 1;
+    }
+
+    /* ── INTERACT MODE layout ────────────────────────── */
+    #mode-interact { display: flex; }
+
+    /* Category tabs — left column */
+    .tab-list {
+      width: 118px;
+      flex-shrink: 0;
+      border-right: 1px solid rgba(196, 162, 72, 0.12);
+      padding: 6px 0;
+    }
+    .tab {
+      position: relative;
+      padding: 10px 15px 10px 18px;
+      color: rgba(160, 130, 70, 0.6);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: color 0.14s, background 0.14s;
+    }
+    .tab:hover {
+      color: #c4a248;
+      background: rgba(196, 162, 72, 0.04);
+    }
+    .tab.active {
+      color: #e8d8a0;
+      background: rgba(196, 162, 72, 0.08);
+    }
+    .tab.active::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 4px; bottom: 4px;
+      width: 2px;
+      background: linear-gradient(
+        to bottom,
+        transparent,
+        #c4a248 30%,
+        #c4a248 70%,
+        transparent
+      );
+    }
+
+    /* Action list — right column */
+    .action-list {
+      flex: 1;
+      padding: 6px 0;
+    }
+    .action-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 18px 9px 14px;
+      color: rgba(180, 155, 90, 0.7);
+      font-size: 13px;
+      cursor: pointer;
+      transition: color 0.13s, padding-left 0.13s;
+    }
+    .action-item .arrow {
+      color: rgba(139, 105, 20, 0.5);
+      font-size: 16px;
+      line-height: 1;
+      flex-shrink: 0;
+      transition: color 0.13s, transform 0.13s;
+    }
+    .action-item:hover {
+      color: #e8d8a0;
+      padding-left: 18px;
+    }
+    .action-item:hover .arrow {
+      color: #c4a248;
+      transform: translateX(2px);
+    }
+
+    /* ── SEX SPANK / ENCOUNTER MODE ──────────────────── */
+    #mode-sex, #mode-encounter {
+      padding: 14px 18px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    /* Encounter step progress dots */
+    .enc-progress {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 4px;
+    }
+    .enc-dot {
+      width: 22px; height: 3px;
+      background: rgba(196, 162, 72, 0.18);
+    }
+    .enc-dot.done   { background: rgba(196, 162, 72, 0.7); }
+    .enc-dot.active { background: #d4b86a; }
+    .sex-label {
+      color: rgba(160, 130, 70, 0.6);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+    .name-btn {
+      display: block;
+      width: 100%;
+      padding: 9px 15px;
+      background: rgba(196, 162, 72, 0.05);
+      border: 1px solid rgba(196, 162, 72, 0.18);
+      color: #c4a248;
+      font-family: inherit;
+      font-size: 13px;
+      letter-spacing: 0.03em;
+      text-align: left;
+      cursor: pointer;
+      transition: background 0.14s, border-color 0.14s, color 0.14s, padding-left 0.13s;
+    }
+    .name-btn:hover {
+      background: rgba(196, 162, 72, 0.12);
+      border-color: rgba(196, 162, 72, 0.45);
+      color: #e8d8a0;
+      padding-left: 19px;
+    }
+    /* "You" / "Yourself" button — cool silver tone */
+    .name-btn.you-btn {
+      border-color: rgba(140, 175, 210, 0.25);
+      color: rgba(160, 195, 230, 0.8);
+      background: rgba(140, 175, 210, 0.04);
+    }
+    .name-btn.you-btn:hover {
+      background: rgba(140, 175, 210, 0.1);
+      border-color: rgba(140, 175, 210, 0.5);
+      color: #c0d8f0;
+      padding-left: 19px;
+    }
+
+    /* ── Footer ──────────────────────────────────────── */
+    .panel-footer {
+      padding: 9px 18px;
+      border-top: 1px solid rgba(196, 162, 72, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .footer-hint {
+      color: rgba(100, 85, 50, 0.7);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+    }
+    .footer-buttons {
+      display: flex;
+      gap: 8px;
+    }
+    .btn {
+      padding: 5px 13px;
+      font-family: inherit;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      background: transparent;
+      transition: border-color 0.14s, color 0.14s, background 0.14s;
+    }
+    #btn-back {
+      border: 1px solid rgba(196, 162, 72, 0.25);
+      color: rgba(160, 130, 70, 0.6);
+    }
+    #btn-back:hover {
+      border-color: rgba(196, 162, 72, 0.6);
+      color: #c4a248;
+    }
+    .btn-cancel {
+      border: 1px solid rgba(170, 80, 80, 0.35);
+      color: rgba(180, 90, 90, 0.7);
+    }
+    .btn-cancel:hover {
+      border-color: rgba(210, 90, 90, 0.65);
+      color: #c86868;
+      background: rgba(200, 80, 80, 0.07);
+    }
+
+    /* ── Thin gold divider ───────────────────────────── */
+    .gold-rule {
+      height: 1px;
+      background: linear-gradient(
+        to right,
+        transparent, rgba(196, 162, 72, 0.35) 20%,
+        rgba(196, 162, 72, 0.35) 80%, transparent
+      );
+    }
+
+    /* ── Utility ─────────────────────────────────────── */
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<div id="backdrop" onclick="onBackdropClick(event)">
+  <div id="panel">
+
+    <!-- ── Header ── -->
+    <div class="panel-header">
+      <span class="header-icon">◈</span>
+      <span class="header-label" id="header-label">Interact</span>
+      <span class="header-target" id="header-target"></span>
+    </div>
+
+    <!-- ══ INTERACT MODE ══ -->
+    <div id="mode-interact" class="hidden">
+      <div style="display:flex;">
+        <div class="tab-list" id="tab-list"></div>
+        <div class="action-list" id="action-list"></div>
+      </div>
+    </div>
+
+    <!-- ══ SEX SPANK MODE ══ -->
+    <div id="mode-sex" class="hidden">
+      <div id="sex-list"></div>
+    </div>
+
+    <!-- ══ ENCOUNTER (SexLab setup) MODE ══ -->
+    <div id="mode-encounter" class="hidden">
+      <div class="enc-progress" id="enc-progress"></div>
+      <div id="enc-list"></div>
+    </div>
+
+    <div class="gold-rule"></div>
+
+    <!-- ── Footer ── -->
+    <div class="panel-footer">
+      <span class="footer-hint" id="footer-hint">Esc · cancel</span>
+      <div class="footer-buttons">
+        <button class="btn hidden" id="btn-back" onclick="goBack()">← Back</button>
+        <button class="btn btn-cancel" onclick="cancel()">Cancel</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+//  ACTION TABLE
+//  id maps directly to Papyrus _DispatchInteractAction(choice)
+// ════════════════════════════════════════════════════════════
+const CATEGORIES = [
+  { id: 'tender',   label: 'Tender'   },
+  { id: 'dominant', label: 'Dominant' },
+  { id: 'intimate', label: 'Intimate' },
+  { id: 'devious',  label: 'Devious'  },
+];
+const ACTIONS = {
+  tender:   [
+    { id: 0,  label: 'Back Hug'      },
+    { id: 1,  label: 'Front Hug'     },
+    { id: 2,  label: 'Kiss'          },
+    { id: 3,  label: 'Flirt'         },
+  ],
+  dominant: [
+    { id: 4,  label: 'Grab Hold'     },
+    { id: 5,  label: 'Struggle'      },
+    { id: 6,  label: 'Choke Hold'    },
+    { id: 7,  label: 'Womb Hit'      },
+  ],
+  intimate: [
+    { id: 8,  label: 'Forced Kiss'   },
+    { id: 9,  label: 'Spank'         },
+    { id: 10, label: 'Touch Chest'   },
+    { id: 11, label: 'Examine'       },
+  ],
+  devious:  [
+    { id: 12, label: 'Show Off Body' },
+    { id: 13, label: 'Drunk Exploit' },
+    { id: 14, label: 'Drug Food'     },
+    { id: 15, label: 'Fondle'        },
+  ],
+};
+
+// ════════════════════════════════════════════════════════════
+//  SEX SPANK CHOICE ENCODING (sent to Papyrus as int string)
+//   0, 1, 2     → spank sceneNPCs[0/1/2]
+//   10, 11, 12  → sceneNPCs[0/1/2] spanks player
+//   13          → player self-spank
+//  -1           → cancel
+// ════════════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════════════
+let g_mode          = null;    // 'interact' | 'sexspank' | 'encounter'
+let g_activeTab     = 'tender';
+let g_sexNames      = [];
+let g_playerInScene = false;
+let g_sexPhase      = 'who';   // 'who' | 'bywhom'
+
+// ── Encounter (SexLab setup) wizard ──────────────────────────
+// Result is sent to Papyrus as "role;intensity;flavor;type" (or "cancel"),
+// split there with StringUtil.Split.  One pick per step.
+const ENC_STEPS = [
+  { key:'role', label:'Who takes whom?', opts:[
+      { v:'i_take_them',  t:'I take them'   },
+      { v:'they_take_me', t:'They take me'  },
+      { v:'together',     t:'Together'      } ] },
+  { key:'intensity', label:'How?', opts:[
+      { v:'loving', t:'Loving'  },
+      { v:'normal', t:'Normal'  },
+      { v:'rough',  t:'Rough'   },
+      { v:'brutal', t:'Brutal'  } ] },
+  { key:'flavor', label:'Circumstance', opts:[
+      { v:'none',        t:'(Nothing special)' },
+      { v:'drugged',     t:'Drugged'           },
+      { v:'blackmail',   t:'Blackmail'         },
+      { v:'power',       t:'Abuse of power'    },
+      { v:'degrading',   t:'Degrading'         },
+      { v:'gagged',      t:'Gagged / silenced' },
+      { v:'threatening', t:'Threatening'       } ] },
+  { key:'type', label:'Act', opts:[
+      { v:'vaginal', t:'Vaginal' },
+      { v:'anal',    t:'Anal'    },
+      { v:'oral',    t:'Oral'    },
+      { v:'painal',  t:'Painal'  } ] },
+];
+let g_encStep   = 0;
+let g_encChoice = {};
+
+// ════════════════════════════════════════════════════════════
+//  ENTRY POINTS  — called from C++ via PrismaUI.Invoke()
+//
+//  Usage from C++:
+//    prisma->Invoke(view, "window.snbaka_open_interact('Lydia')");
+//    prisma->Invoke(view, "window.snbaka_open_sexspank('{\"names\":[\"Lydia\",\"Serana\"],\"playerInScene\":true}')");
+// ════════════════════════════════════════════════════════════
+
+window.snbaka_open_interact = function(targetName) {
+  g_mode = 'interact';
+  _el('header-label').textContent = 'Interact with';
+  _el('header-target').textContent = targetName || '';
+  _show('mode-interact');
+  _hide('mode-sex');
+  _hide('btn-back');
+  _el('footer-hint').textContent = 'Esc · cancel';
+  _buildTabs();
+  _selectTab('tender');
+  _open();
+};
+
+window.snbaka_open_sexspank = function(json) {
+  const data = (typeof json === 'string') ? JSON.parse(json) : json;
+  g_sexNames      = Array.isArray(data.names) ? data.names : [];
+  g_playerInScene = !!data.playerInScene;
+  g_sexPhase      = 'who';
+  g_mode          = 'sexspank';
+  _el('header-label').textContent = 'During sex';
+  _el('header-target').textContent = '';
+  _hide('mode-interact');
+  _show('mode-sex');
+  _hide('btn-back');
+  _renderSexWho();
+  _open();
+};
+
+// json: {"aggressor":"Bjorn","victim":"Lydia"}  (names are display-only)
+window.snbaka_open_encounter = function(json) {
+  let data = {};
+  try { data = (typeof json === 'string') ? JSON.parse(json) : (json || {}); } catch(e) {}
+  g_mode      = 'encounter';
+  g_encStep   = 0;
+  g_encChoice = {};
+  _el('header-label').textContent  = 'Encounter';
+  _el('header-target').textContent = (data.aggressor || '') + (data.victim ? ' › ' + data.victim : '');
+  _hide('mode-interact');
+  _hide('mode-sex');
+  _show('mode-encounter');
+  _renderEncStep();
+  _open();
+};
+
+function _renderEncStep() {
+  const step = ENC_STEPS[g_encStep];
+
+  // progress dots
+  const prog = _el('enc-progress');
+  prog.innerHTML = '';
+  ENC_STEPS.forEach((s, idx) => {
+    const d = document.createElement('div');
+    d.className = 'enc-dot' + (idx < g_encStep ? ' done' : (idx === g_encStep ? ' active' : ''));
+    prog.appendChild(d);
+  });
+
+  const el = _el('enc-list');
+  el.innerHTML = '';
+  const lbl = document.createElement('div');
+  lbl.className = 'sex-label';
+  lbl.textContent = step.label;
+  el.appendChild(lbl);
+
+  step.opts.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'name-btn';
+    btn.textContent = opt.t;
+    btn.tabIndex = 0;
+    btn.onclick = () => _encPick(opt.v);
+    el.appendChild(btn);
+  });
+
+  if (g_encStep > 0) { _show('btn-back'); } else { _hide('btn-back'); }
+  _el('footer-hint').textContent = (g_encStep > 0 ? 'Esc / Back · back' : 'Esc · cancel');
+}
+
+function _encPick(v) {
+  g_encChoice[ENC_STEPS[g_encStep].key] = v;
+  if (g_encStep < ENC_STEPS.length - 1) {
+    g_encStep += 1;
+    _renderEncStep();
+  } else {
+    const spec = [g_encChoice.role, g_encChoice.intensity, g_encChoice.flavor, g_encChoice.type].join(';');
+    _close();
+    _sendChoice(spec);
+  }
+}
+
+function _encBack() {
+  if (g_encStep > 0) {
+    g_encStep -= 1;
+    _renderEncStep();
+  } else {
+    cancel();
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  INTERACT MODE
+// ════════════════════════════════════════════════════════════
+
+function _buildTabs() {
+  const el = _el('tab-list');
+  el.innerHTML = '';
+  CATEGORIES.forEach(cat => {
+    const div = document.createElement('div');
+    div.className = 'tab' + (cat.id === g_activeTab ? ' active' : '');
+    div.textContent = cat.label;
+    div.tabIndex = 0;
+    div.onclick = () => _selectTab(cat.id);
+    el.appendChild(div);
+  });
+}
+
+function _selectTab(catId) {
+  g_activeTab = catId;
+  _buildTabs();
+
+  const el = _el('action-list');
+  el.innerHTML = '';
+  (ACTIONS[catId] || []).forEach(action => {
+    const div = document.createElement('div');
+    div.className = 'action-item';
+    div.innerHTML = `<span class="arrow">›</span><span>${action.label}</span>`;
+    div.tabIndex = 0;
+    div.onclick = () => _choose(action.id);
+    el.appendChild(div);
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+//  SEX SPANK MODE
+// ════════════════════════════════════════════════════════════
+
+function _renderSexWho() {
+  g_sexPhase = 'who';
+  _hide('btn-back');
+  _el('footer-hint').textContent = 'Esc · cancel';
+
+  const el = _el('sex-list');
+  el.innerHTML = '';
+
+  const lbl = document.createElement('div');
+  lbl.className = 'sex-label';
+  lbl.textContent = 'Spank who?';
+  el.appendChild(lbl);
+
+  g_sexNames.forEach((name, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'name-btn';
+    btn.textContent = name;
+    btn.onclick = () => _choose(i);   // 0, 1, 2
+    el.appendChild(btn);
+  });
+
+  if (g_playerInScene) {
+    const btn = document.createElement('button');
+    btn.className = 'name-btn you-btn';
+    btn.textContent = 'You  (receive)';
+    btn.onclick = () => _renderSexByWhom();
+    el.appendChild(btn);
+  }
+}
+
+function _renderSexByWhom() {
+  g_sexPhase = 'bywhom';
+  _show('btn-back');
+  _el('footer-hint').textContent = 'Esc / Tab · back';
+
+  const el = _el('sex-list');
+  el.innerHTML = '';
+
+  const lbl = document.createElement('div');
+  lbl.className = 'sex-label';
+  lbl.textContent = 'Spanked by who?';
+  el.appendChild(lbl);
+
+  g_sexNames.forEach((name, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'name-btn';
+    btn.textContent = name;
+    btn.onclick = () => _choose(10 + i);  // 10, 11, 12
+    el.appendChild(btn);
+  });
+
+  const self = document.createElement('button');
+  self.className = 'name-btn you-btn';
+  self.textContent = 'Yourself';
+  self.onclick = () => _choose(13);
+  el.appendChild(self);
+}
+
+function sexBack() {
+  _renderSexWho();
+}
+
+// ════════════════════════════════════════════════════════════
+//  RESULT / CLOSE
+// ════════════════════════════════════════════════════════════
+
+function _choose(id) {
+  _close();
+  _sendChoice(String(id));
+}
+
+function cancel() {
+  const enc = (g_mode === 'encounter');
+  _close();
+  // Encounter cancel sends "cancel" so Papyrus can release the victim and tell
+  // SkyrimNet the aggressor changed their mind; other modes send -1.
+  _sendChoice(enc ? 'cancel' : '-1');
+}
+
+// Back button / Esc routing per mode.
+function goBack() {
+  if (g_mode === 'encounter') { _encBack(); return; }
+  if (g_mode === 'sexspank' && g_sexPhase === 'bywhom') { _renderSexWho(); return; }
+  cancel();
+}
+
+function _sendChoice(value) {
+  try {
+    window.snbaka_chose(value);
+  } catch(e) {
+    console.log('[SNBaka] choice =', value, '(snbaka_chose unavailable in browser preview)');
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  OPEN / CLOSE ANIMATION
+// ════════════════════════════════════════════════════════════
+
+function _open() {
+  document.getElementById('backdrop').classList.add('visible');
+}
+
+function _close() {
+  const bd = document.getElementById('backdrop');
+  bd.classList.remove('visible');
+  setTimeout(() => {
+    g_mode = null;
+    _hide('mode-interact');
+    _hide('mode-sex');
+    _hide('mode-encounter');
+    _hide('btn-back');
+  }, 230);
+}
+
+// ════════════════════════════════════════════════════════════
+//  KEYBOARD
+// ════════════════════════════════════════════════════════════
+
+document.addEventListener('keydown', e => {
+  if (!g_mode) return;
+
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    if (g_mode === 'encounter') {
+      _encBack();
+    } else if (g_mode === 'sexspank' && g_sexPhase === 'bywhom') {
+      _renderSexWho();
+    } else {
+      cancel();
+    }
+    return;
+  }
+
+  if (e.key === 'Enter') {
+    const focused = document.activeElement;
+    if (focused && focused !== document.body) {
+      e.preventDefault();
+      focused.click();
+    }
+    return;
+  }
+
+  if (e.key === 'Tab') {
+    if (g_mode === 'sexspank' && g_sexPhase === 'bywhom') {
+      e.preventDefault();
+      _renderSexWho();
+    }
+    // Otherwise let browser cycle focus through tabindex elements naturally
+  }
+});
+
+// Click outside the panel → cancel
+function onBackdropClick(e) {
+  if (e.target === document.getElementById('backdrop')) cancel();
+}
+
+// ════════════════════════════════════════════════════════════
+//  HELPERS
+// ════════════════════════════════════════════════════════════
+
+function _el(id)   { return document.getElementById(id); }
+function _show(id) { _el(id).classList.remove('hidden'); }
+function _hide(id) { _el(id).classList.add('hidden'); }
+
+// ════════════════════════════════════════════════════════════
+//  BROWSER PREVIEW  — auto-opens when loaded via file:// or localhost.
+//  This block is completely inert inside Skyrim/PrismaUI.
+// ════════════════════════════════════════════════════════════
+(function browserPreview() {
+  const inSkyrim = typeof window.snbaka_chose === 'function';
+  if (inSkyrim) return;
+
+  // Cycle through demos on each page load using sessionStorage
+  const demos = [
+    () => snbaka_open_interact("Lydia"),
+    () => snbaka_open_sexspank({ names: ["Lydia"],                    playerInScene: true  }),
+    () => snbaka_open_sexspank({ names: ["Lydia", "Serana"],          playerInScene: true  }),
+    () => snbaka_open_sexspank({ names: ["Lydia", "Serana", "Rikke"], playerInScene: false }),
+    () => snbaka_open_encounter({ aggressor: "Bjorn", victim: "Lydia" }),
+  ];
+  const LABELS = [
+    "INTERACT menu  (target: Lydia)",
+    "SEX SPANK — 1 NPC + You",
+    "SEX SPANK — 2 NPCs + You",
+    "SEX SPANK — 3 NPCs, player not in scene",
+    "ENCOUNTER wizard  (Bjorn › Lydia)",
+  ];
+
+  let idx = parseInt(sessionStorage.getItem('snbaka_demo') || '0', 10) % demos.length;
+
+  // Show a small cycling label in the top-left corner
+  const label = document.createElement('div');
+  label.style.cssText = [
+    'position:fixed', 'top:10px', 'left:12px',
+    'color:rgba(196,162,72,0.55)', 'font-size:11px',
+    'letter-spacing:.1em', 'font-family:monospace',
+    'pointer-events:none', 'z-index:9999'
+  ].join(';');
+  label.textContent = '⟳ PREVIEW  [' + (idx+1) + '/' + demos.length + ']  ' + LABELS[idx]
+                    + '   (Reload for next demo — Esc/click to close)';
+  document.body.appendChild(label);
+
+  // Advance index for next reload
+  sessionStorage.setItem('snbaka_demo', String((idx + 1) % demos.length));
+
+  // Open after a tick so the DOM is fully ready
+  setTimeout(() => demos[idx](), 50);
+})();
+</script>
+</body>
+</html>

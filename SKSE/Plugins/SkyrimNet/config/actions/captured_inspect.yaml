@@ -1,0 +1,46 @@
+﻿name: CapturedInspect
+description: |
+  The initiator forces the target through a three-stage full-body inspection: a general
+  capture pose, then chest examination, then intimate lower-body examination. The target
+  cannot resist and will panic throughout. This is a degrading, multi-stage violation
+  used to assess or humiliate a captive.
+
+  WHEN A CHARACTER WOULD DO THIS:
+  - A slaver evaluating a new captive's worth
+  - A captor performing a thorough degrading inspection to break the target's spirit
+  - A criminal faction member processing a prisoner
+  - A villain demonstrating complete ownership — the target has no privacy or dignity
+  - A warlord or bandit chief inspecting a captured enemy or tribute
+
+  PERSONALITY TYPES WHO WOULD DO THIS:
+  - Cold, evaluative, and utterly without empathy
+  - A slaver or trader who views the target as merchandise
+  - A captor who uses systematic violation as a psychological tool
+  - Methodical and deliberate — this is a process, not an outburst
+
+  DO NOT USE:
+  - On male-body targets — this action includes breast and intimate inspection stages and requires a female body
+  - Without a firmly established captive/captor power dynamic
+  - In social or public contexts
+  - As a casual or impulsive act — this is a deliberate multi-stage process
+
+  CONSEQUENCES:
+  - Three-stage animation — general capture, breast inspection, intimate inspection
+  - Target panics throughout all three stages
+  - Fires baka_panic event — severe, lasting psychological damage
+  - After this, the target will be in a state of fear, violation, and despair
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: CapturedInspect_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: The NPC conducting the forced inspection.
+  - type: dynamic
+    name: akTarget
+    description: The person being inspected against their will — player or nearby NPC.
+
+enabled: true
+defaultPriority: 2

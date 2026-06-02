@@ -1,0 +1,43 @@
+﻿name: BackHugMolest
+description: |
+  The initiator grabs the target from behind without consent, pinning their arms and
+  pressing against them. Unlike a rear embrace, this is a forceful, unwanted seizure —
+  the target cannot easily break free and will panic.
+
+  WHEN A CHARACTER WOULD DO THIS:
+  - A predatory or dominant NPC acting on opportunity
+  - A captor asserting control over a prisoner or captive
+  - A character consumed by lust or dominance who disregards the target's will
+  - A villain or hostile faction member intimidating or subjugating the target
+  - An abusive partner demonstrating control
+
+  PERSONALITY TYPES WHO WOULD DO THIS:
+  - Predatory, dominant, or cruel
+  - Power-obsessed or controlling
+  - Entitled — believes they have the right to take what they want
+  - Criminal, bandit, or antagonist faction member
+
+  DO NOT USE:
+  - For affectionate or consensual rear contact — use BackHug instead
+  - When the initiator is a friendly or lawful character without specific motivation
+  - During active combat — animations require both actors to be still
+
+  CONSEQUENCES:
+  - Target will panic and be held against their will
+  - Fires baka_panic event — nearby NPCs and the target may react with fear or anger
+  - Relationship damage, potential hostility escalation
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: BackHugMolest_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: The NPC grabbing the target from behind by force.
+  - type: dynamic
+    name: akTarget
+    description: The person being grabbed — player or nearby NPC.
+
+enabled: true
+defaultPriority: 2

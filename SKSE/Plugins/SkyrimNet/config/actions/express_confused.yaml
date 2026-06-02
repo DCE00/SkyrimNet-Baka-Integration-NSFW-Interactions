@@ -1,0 +1,24 @@
+name: express_confused
+description: |
+  The speaker's face shows confusion — a puzzled, uncertain, questioning look — for a few
+  seconds.
+
+  USE WHEN: the speaker is confused, puzzled, skeptical, or unsure right now — they don't
+  understand something, doubt what they heard, or are working something out.
+
+  Purely a facial expression — no body movement, no dialogue. It fades on its own.
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: ExpressConfused_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: The character whose face shows the expression
+  - type: dynamic
+    name: akTarget
+    description: Who they are reacting to (optional context; not required)
+
+enabled: true
+defaultPriority: 2

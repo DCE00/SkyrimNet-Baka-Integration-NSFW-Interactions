@@ -1,0 +1,45 @@
+﻿name: WombHit
+description: |
+  The initiator strikes the target in the lower abdomen with a deliberate, repeated blow.
+  This is a violent, targeted physical attack on a specific vulnerable area — not combat,
+  but controlled cruelty or punishment. The initiator faces the target and strikes at
+  close range. A smack sound plays on impact and the action loops briefly.
+
+  WHEN A CHARACTER WOULD DO THIS:
+  - A torturer or interrogator inflicting targeted pain without killing
+  - A captor punishing a prisoner in a calculated, demeaning way
+  - A character demonstrating absolute physical dominance over a restrained target
+  - A villain who wants to cause suffering without drawing a weapon
+  - An enforcer delivering a specific message through targeted violence
+
+  PERSONALITY TYPES WHO WOULD DO THIS:
+  - Cruel and calculating — chooses this specifically for its effect
+  - A torturer or enforcer who knows exactly what they are doing
+  - Cold and clinical — this is a tool, not an outburst
+  - A character with contempt for the target who wants to cause real harm
+
+  DO NOT USE:
+  - As a playful or affectionate act
+  - In casual social contexts — this is deliberate targeted violence
+  - When the initiator has no established authority or power over the target
+
+  CONSEQUENCES:
+  - Looping blow animation — the strike repeats, not a single hit
+  - Audible smack sound — nearby actors will hear it
+  - Severe physical and psychological impact on the target
+  - Strongly damages relationship and may trigger fear or hatred
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: WombHit_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: The NPC delivering the targeted strike.
+  - type: dynamic
+    name: akTarget
+    description: The person being struck — player or nearby NPC.
+
+enabled: true
+defaultPriority: 2

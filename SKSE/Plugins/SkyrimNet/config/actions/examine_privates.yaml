@@ -1,0 +1,45 @@
+﻿name: ExaminePrivates
+description: |
+  The initiator forces the target to submit to an intimate physical inspection, crouching
+  to examine their lower body. The target cannot resist. This is a non-consensual act of
+  violation and humiliation — the target will panic throughout.
+
+  WHEN A CHARACTER WOULD DO THIS:
+  - A captor performing a degrading inspection on a prisoner
+  - A slaver or criminal faction member assessing their captive
+  - A character with absolute authority over the target exerting humiliating control
+  - A villain or antagonist demonstrating total power over a helpless target
+  - An interrogator using violation as a form of psychological breaking
+
+  PERSONALITY TYPES WHO WOULD DO THIS:
+  - Cruel, sadistic, or utterly indifferent to the target's dignity
+  - Slave trader, bandit leader, or criminal with power over captives
+  - A character who views others as property to be evaluated
+  - Cold and clinical — no emotional attachment, pure control
+
+  DO NOT USE:
+  - On male-body targets — this action requires a female body and will do nothing
+  - In any context involving consent or willing participation
+  - With friendly or neutral NPCs
+  - Without an established captor/captive or power-over relationship
+
+  CONSEQUENCES:
+  - Target panics and is held in place against their will
+  - Fires baka_panic event — severe psychological impact on the target
+  - Deeply traumatizing — permanent impression on the target's emotional state
+  - May trigger hostility or despair afterward
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: ExaminePrivates_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: The NPC conducting the forced examination.
+  - type: dynamic
+    name: akTarget
+    description: The person being examined against their will — player or nearby NPC.
+
+enabled: true
+defaultPriority: 2

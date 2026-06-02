@@ -1,0 +1,28 @@
+name: "baka_sexlab_trigger"
+description: "A SexLab aggressive scene has been triggered after a complete physical defeat and escalation. The attacker has fully dominated the victim."
+
+eventCriteria:
+  eventType: "baka_sexlab_trigger"
+
+response:
+  type: "direct_narration"
+  content: |
+    {{ originator }} has completely overpowered {{ target }}. The struggle is over.
+
+    Generate a brief, raw narrative beat acknowledging what is happening — without
+    euphemism, but also without gratuitous excess. Consider:
+
+    - {{ target }}'s state: resignation, dissociation, quiet horror, or a last
+      defiant word that goes nowhere.
+    - {{ originator }}'s demeanour: cold control, intensity, or something more
+      conflicted — if their personality allows.
+    - Any witnesses: silence, looking away, or a reaction that fits the scene.
+
+    One beat only. Terse. Match personalities exactly.
+
+audience: "nearby_npcs"
+
+enabled: true
+probability: 1
+cooldownSeconds: 60
+priority: 10

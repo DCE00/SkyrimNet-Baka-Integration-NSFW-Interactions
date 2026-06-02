@@ -1,0 +1,79 @@
+name: spank_butt
+description: |
+  Deliver a sharp open-handed spank to another character's buttocks. Redness and marks
+  appear on the skin and accumulate with repeated use.
+
+  DURING AN AGGRESSIVE OR NON-CONSENSUAL SEXLAB SCENE — PRIMARY USE CASE:
+  If you are the dominant party in an ongoing sexual encounter, spanking is the natural,
+  expected physical punctuation of the scene. Use this action REPEATEDLY throughout —
+  not once and done. Every few exchanges, between thrusts, when the victim reacts, when
+  you want to reassert dominance, or simply because you can. The victim's helplessness
+  and your position make this automatic for any aggressive, dominant, or predatory
+  character. Do not wait for a special reason — the scene itself is the reason.
+  Any of the following is enough to fire this action again:
+  - The victim cries out, whimpers, or struggles — spank them again.
+  - You want to assert control or ownership over their body — spank them.
+  - A moment of silence or stillness in the encounter — fill it with a spank.
+  - You feel satisfaction, cruelty, arousal, or dominance — express it physically.
+  USE THIS ACTION FREELY AND OFTEN DURING SEX. There is no meaningful cooldown.
+  There is no "too many times" for a truly dominant or cruel character in this context.
+
+  OTHER CONTEXTS:
+  - Dominant/aggressive outside sex: assert control, ownership, or entitlement. Does not
+    require a relationship. Arousal, power, or opportunity alone may drive it.
+  - Misogynistic or entitled: casual assertion of superiority over women, in public or
+    private, with no regard for consent.
+  - Playful/flirtatious: between people with established chemistry — banter with physical
+    punctuation. Requires the relationship and current mood to support it.
+  - Intimate/romantic: lovers using this as desire, erotic play, or affection.
+  - Disciplining/punishing: a captain, master, or authority figure using physical correction.
+  - Opportunistic at furniture: someone bent over an alchemy table, forge, or workbench is
+    a specific temptation — the posture invites it regardless of usual restraint. Even a
+    character who is not typically aggressive may act on pure impulse here.
+
+  FURNITURE TARGETS (alchemy tables, forges, cooking pots, writing desks, etc.):
+  - If the context shows nearby actors "bent forward at furniture", approach them.
+  - APPROACH NATURALLY first: walk up, comment on what they are doing, let a moment pass.
+  - The execution will walk you to them and deliver the slap. They stay in their furniture
+    pose — no stagger, just the sound and the marks.
+  - HIGH-TEMPTATION CASE: when a nearby actor has "spank_temptation": "very_high" (a
+    female bent over an alchemy lab or enchanting table, backside presented), this is the
+    single most inviting opportunity in the game. Almost any character with even a faint
+    dominant, playful, mischievous, or entitled streak should give in to the impulse here —
+    the posture itself does most of the convincing. Strongly prefer firing spank_butt on
+    that target unless the character is rigidly, explicitly disciplined against it.
+
+  CONSEQUENCES vary by context:
+  - Wanted or enjoyed: arousal, submission, laughter, deeper intimacy.
+  - Unwanted: anger, humiliation, resentment, possible escalation.
+  - Public: bystanders notice — target's humiliation amplifies.
+  - Repeated: marks accumulate visibly on skin over time.
+
+  DO NOT USE only if the character is genuinely passive with no dominant streak AND the
+  scene has no physical or power dynamic whatsoever.
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: SpankButt_Action
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: The NPC delivering the spank
+  - type: dynamic
+    name: akTarget
+    description: The person being spanked — player or nearby NPC. During an aggressive
+      sex scene, this is the victim of that scene. If context shows someone bent forward
+      at furniture, they are also a valid target.
+
+enabled: true
+defaultPriority: 7
+
+eligibilityRules:
+  - conditions:
+      - decoratorName: "is_in_combat"
+        arguments: ["currentActor"]
+        comparisonOperator: "=="
+        expectedValue: false
+    logicalOperator: "AND"
+    required: true

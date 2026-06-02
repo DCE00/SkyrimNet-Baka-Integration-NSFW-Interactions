@@ -1,0 +1,38 @@
+name: pose_seductive
+description: |
+  The speaker strikes a deliberately seductive, provocative pose for a few seconds — hip cocked,
+  a hand trailing the body, an over-the-shoulder look, an alluring display of the figure.
+
+  USE WHEN: there is genuine erotic, flirtatious, or power-charged tension and the speaker wants
+  to entice, tease, tempt, or show themselves off — seducing a partner, performing for an
+  admirer, or a submissive displaying on command.
+
+  REQUIRES sexual/flirtatious or dominant-submissive context. DO NOT USE in ordinary, tense, or
+  hostile conversation with no such charge.
+
+  Body language only — no dialogue. Held briefly, then they relax. Picks a random pose from a
+  seductive set, so it varies between characters.
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: PoseSeductive_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: The character striking the pose
+  - type: dynamic
+    name: akTarget
+    description: The person they are enticing or displaying for (optional context; not required)
+
+enabled: true
+defaultPriority: 2
+
+eligibilityRules:
+  - conditions:
+      - decoratorName: "is_in_combat"
+        arguments: ["currentActor"]
+        comparisonOperator: "=="
+        expectedValue: false
+    logicalOperator: "AND"
+    required: true

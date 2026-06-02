@@ -1,0 +1,19 @@
+{# SkyrimNet_SlapDaButt — spank history injected into character bio. #}
+{% if render_mode == "full" or render_mode == "thoughts" or render_mode == "book" or render_mode == "transform" %}
+{% set spank = get_spank_state(actorUUID) %}
+{% if spank and spank.has_been_spanked %}
+### Physical State (Spanking)
+{% if spank.recency == "just now" %}
+- Was just spanked by {{ spank.last_spanker }}. Sting is immediate, reaction unresolved.
+{% elif spank.recency == "very recent" %}
+- Was spanked by {{ spank.last_spanker }} very recently. Residual sting, heightened awareness.
+{% elif spank.recency == "recent" %}
+- Was spanked by {{ spank.last_spanker }} earlier. Physical sensation faded, emotional impression lingers.
+{% elif spank.recency == "hours ago" %}
+- Was spanked by {{ spank.last_spanker }} today. Background memory coloring their mood.
+{% endif %}
+{% if spank.mark_level != "none" %}
+- Skin marks: {{ spank.mark_level }} ({{ spank.spank_count }} total spanks from {{ spank.last_spanker }}).
+{% endif %}
+{% endif %}
+{% endif %}

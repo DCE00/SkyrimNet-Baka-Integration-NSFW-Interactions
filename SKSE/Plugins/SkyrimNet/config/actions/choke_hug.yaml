@@ -1,0 +1,24 @@
+﻿name: ChokeHug
+description: |
+  The initiator grabs the target by the THROAT from behind — a five-stage chokehold that
+  escalates to near-lethal force. This is violent physical domination, not intimacy.
+  The target is fighting for their life. Has nothing to do with breasts, touching, or sex.
+
+  Use for villains, enforcers, or characters delivering a life-threatening warning or
+  subduing someone by force. The initiator must be physically threatening and dominant.
+  Do not use as affection, an embrace, or any kind of sexual contact.
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: ChokeHug_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: The NPC seizing the target by the throat.
+  - type: dynamic
+    name: akTarget
+    description: The person being choked — player or nearby NPC.
+
+enabled: true
+defaultPriority: 2

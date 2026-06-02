@@ -1,0 +1,42 @@
+name: SlapBreast
+description: |
+  A sharp slap across the chest or breasts. Female targets only — the script enforces this.
+
+  WHEN A CHARACTER WOULD DO THIS:
+  - Dominant/aggressive: assert ownership or control over a woman's body.
+  - Misogynistic or entitled: casual assertion of superiority, no regard for consent.
+  - Intimate dynamic: lovers or established partners where this is accepted or desired.
+  - Disciplining: a captor, master, or authority figure using physical correction.
+  - Opportunistic during sex: natural escalation within an encounter.
+
+  CONSEQUENCES:
+  - Wanted: arousal, submission, a sharp intake of breath.
+  - Unwanted: anger, humiliation, damaged relationship, possible escalation.
+  - Public: bystanders react with discomfort or shock.
+
+  DO NOT USE if the character has no dominant streak, no power over the target,
+  or if the scene has no edge of tension or established physical dynamic.
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: SpankBreast_Action
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: The NPC delivering the slap
+  - type: dynamic
+    name: akTarget
+    description: The woman being slapped — player or nearby female NPC.
+
+enabled: true
+defaultPriority: 3
+
+eligibilityRules:
+  - conditions:
+      - decoratorName: "is_in_combat"
+        arguments: ["currentActor"]
+        comparisonOperator: "=="
+        expectedValue: false
+    logicalOperator: "AND"
+    required: true

@@ -1,0 +1,21 @@
+name: "baka_escalate"
+description: "An NPC has chosen to escalate against a defeated, helpless target. The choke-hold animation is beginning and the final QTE is about to run."
+
+eventCriteria:
+  eventType: "baka_escalate"
+
+response:
+  type: "direct_narration"
+  content: |
+    {{ originator }} makes their decision — and moves in.
+
+    One sharp beat: the moment of decision crystallised into action. What does
+    {{ target }} do when they see it coming? What does {{ originator }}'s body
+    language convey? Match personalities exactly. One sentence maximum.
+
+audience: "nearby_npcs"
+
+enabled: true
+probability: 0.6
+cooldownSeconds: 5
+priority: 9

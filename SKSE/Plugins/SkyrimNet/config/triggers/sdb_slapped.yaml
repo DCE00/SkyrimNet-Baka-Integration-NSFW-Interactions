@@ -1,0 +1,20 @@
+name: "sdb_slapped"
+description: "The slapper reacts immediately after striking someone across the face"
+
+eventCriteria:
+  eventType: "sdb_slapped"
+
+response:
+  type: "direct_narration"
+  content: |
+    {{ originator }} just slapped {{ target }} across the face. Generate their immediate
+    reaction in one short beat. This is a confrontational act — not sexual. The tone should
+    match: authority, contempt, punishment, anger, or cold satisfaction. One line or one
+    action. Match their personality exactly. Do not describe {{ target }}'s reaction here.
+
+audience: "nearby_npcs"
+
+enabled: true
+probability: 1
+cooldownSeconds: 30
+priority: 7

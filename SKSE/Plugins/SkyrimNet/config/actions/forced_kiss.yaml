@@ -1,0 +1,43 @@
+﻿name: ForcedKiss
+description: |
+  The initiator forcibly kisses the target without consent, grabbing them and pressing
+  their lips against them. The target cannot break away. This is an act of dominance,
+  possession, or violation — the target will panic and struggle.
+
+  WHEN A CHARACTER WOULD DO THIS:
+  - A captor or dominant figure asserting complete control over the target
+  - A character who believes they own or are entitled to the target
+  - A villain demonstrating power over a prisoner or captive
+  - An obsessed character who has crossed the boundary from infatuation to coercion
+  - A character using intimacy as a weapon of intimidation or humiliation
+
+  PERSONALITY TYPES WHO WOULD DO THIS:
+  - Controlling, possessive, and entitled
+  - Predatory or obsessive
+  - Villain or antagonist without moral restraint
+  - A character in a position of authority abusing that power
+
+  DO NOT USE:
+  - When the initiator is friendly, lawful, or romantically connected — use KissLove
+  - In casual social contexts without established power imbalance
+  - During active combat
+
+  CONSEQUENCES:
+  - Target will panic and be unable to resist during the animation
+  - Fires baka_panic event — severe relationship damage, potential hostility
+  - The target will remember this violation and respond accordingly afterward
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: ForcedKiss_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: The NPC forcing the kiss on the target.
+  - type: dynamic
+    name: akTarget
+    description: The person being kissed by force — player or nearby NPC.
+
+enabled: true
+defaultPriority: 2

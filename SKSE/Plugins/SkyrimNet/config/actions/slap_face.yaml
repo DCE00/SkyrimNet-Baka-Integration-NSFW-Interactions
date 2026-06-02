@@ -1,0 +1,49 @@
+name: SlapFace
+description: |
+  A sharp, open-handed slap across the face or cheek. This is a confrontational act —
+  distinct from spanking. The target staggers from the impact.
+
+  This is NOT inherently sexual. Use it for:
+
+  WHEN A CHARACTER WOULD DO THIS:
+  - Dominance / authority: a guard, captor, master, or anyone in a clear power position
+    who wants to correct, punish, or humiliate.
+  - Anger or contempt: reacting to something the target said or did.
+  - Getting attention: a sharp "snap out of it" in a high-tension moment.
+  - Established submission dynamic: a partner who has clearly accepted this treatment.
+  - Misogynistic or entitled characters — anyone who treats others as beneath them.
+
+  DO NOT USE for:
+  - Characters who are kind, passive, or have no leverage over the target.
+  - Scenes that are purely positive with no edge of tension or dominance.
+  - Combat (eligibility rules block it there anyway).
+
+  CONSEQUENCES:
+  - From authority: humiliation, resentment, or forced submission.
+  - From a stranger: sharp anger, possible escalation.
+  - In an established dynamic: submission, tears, or defiant silence.
+  - Public: bystanders react with shock or discomfort.
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: SlapFace_Action
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: The NPC delivering the slap
+  - type: dynamic
+    name: akTarget
+    description: The person being slapped — player or nearby NPC.
+
+enabled: true
+defaultPriority: 3
+
+eligibilityRules:
+  - conditions:
+      - decoratorName: "is_in_combat"
+        arguments: ["currentActor"]
+        comparisonOperator: "=="
+        expectedValue: false
+    logicalOperator: "AND"
+    required: true

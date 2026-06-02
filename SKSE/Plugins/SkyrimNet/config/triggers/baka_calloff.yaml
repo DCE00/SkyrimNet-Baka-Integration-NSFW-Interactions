@@ -1,0 +1,33 @@
+name: "baka_calloff"
+description: "The initiator of a Baka Motion scene has voluntarily ended their own animation — generate the immediate reactions as the scene is called off."
+
+eventCriteria:
+  eventType: "baka_calloff"
+
+response:
+  type: "direct_narration"
+  content: |
+    {{ originator }} has just chosen to stop the interaction with {{ target }} — the
+    animation has ended. The initiator made this choice themselves.
+
+    Generate the immediate moment in one or two short beats:
+    - What does {{ originator }} say or do? Did they stop because of guilt,
+      fear, a command they received, or something they saw in {{ target }}'s face?
+      Their reason shapes the tone entirely — relief, shame, cold pragmatism,
+      or a threat dressed as mercy.
+    - How does {{ target }} respond to being released?
+      Do they back away? Collapse? Stay frozen? React with anger or relief?
+      They were just in a vulnerable position — their response is visceral.
+
+    Match each character's personality. A villain who stops for pragmatic reasons
+    reads completely differently from a conflicted character who stopped from guilt.
+
+    Do NOT extend the scene or create new conflict here.
+    This is the beat after the release — the immediate emotional exhale.
+
+audience: "nearby_npcs"
+
+enabled: true
+probability: 1
+cooldownSeconds: 20
+priority: 7

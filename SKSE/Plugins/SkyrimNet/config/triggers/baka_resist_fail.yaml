@@ -1,0 +1,27 @@
+name: "baka_resist_fail"
+description: "The player tried to break free but failed — generate the initiating NPC's reaction to the target's resistance collapsing."
+
+eventCriteria:
+  eventType: "baka_resist_fail"
+
+response:
+  type: "direct_narration"
+  content: |
+    {{ target }} fought back — but couldn't break free. The struggle is over and
+    {{ originator }} still has them. Generate {{ originator }}'s reaction in one beat.
+
+    {{ target }} just spent themselves trying to escape and failed. {{ originator }}
+    knows it. What do they do with that? Satisfaction, contempt, mockery, cold silence,
+    a quiet statement of fact — or do they simply continue as if the attempt meant
+    nothing? The tone should match their character: a sadist savors this, a clinical
+    captor files it away, a bully makes sure {{ target }} feels the humiliation.
+
+    One beat only. The moment {{ originator }} feels the resistance stop. Make it feel
+    like a door closing.
+
+audience: "nearby_npcs"
+
+enabled: true
+probability: 1
+cooldownSeconds: 30
+priority: 9

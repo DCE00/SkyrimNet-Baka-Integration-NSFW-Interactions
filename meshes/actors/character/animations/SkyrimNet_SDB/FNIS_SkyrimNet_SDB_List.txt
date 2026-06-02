@@ -1,0 +1,5 @@
+b -a ButtslapFemale ButtslapFemale.hkx
+b -a ButtslapMale ButtslapMale.hkx
+b -a SMplayerslaps SMplayerslaps.hkx
+b -a Sta_slap_backward Sta_slap_backward.hkx
+b -a Sta_slap_forward Sta_slap_forward.hkx

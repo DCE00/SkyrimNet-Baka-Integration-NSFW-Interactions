@@ -1,0 +1,27 @@
+name: "baka_resist_success"
+description: "The player successfully broke free from a forced Baka Motion animation — generate the initiating NPC's reaction to losing their hold."
+
+eventCriteria:
+  eventType: "baka_resist_success"
+
+response:
+  type: "direct_narration"
+  content: |
+    {{ target }} just broke free — physically tore themselves out of {{ originator }}'s
+    grip. Generate {{ originator }}'s immediate reaction in one short beat.
+
+    This is a loss of control. How does {{ originator }} respond? Rage, shock, cold
+    recalculation, wounded pride, or a threat about what comes next? A weak character
+    might back down; a dangerous one might step forward. Do NOT let {{ originator }}
+    simply accept this — make their reaction feel true to who they are and what this
+    escape means for the power dynamic between them.
+
+    One beat. What is the very first thing {{ originator }} says or does the instant
+    {{ target }} pulls free? Make it land.
+
+audience: "nearby_npcs"
+
+enabled: true
+probability: 1
+cooldownSeconds: 30
+priority: 9

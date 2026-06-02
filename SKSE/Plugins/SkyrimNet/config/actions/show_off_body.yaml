@@ -1,0 +1,48 @@
+name: ShowOffBody
+description: |
+  A female character displays or poses her body for an audience — deliberately
+  provocative, submissive, or performative depending on context. The initiator
+  is the one posing; the target is the observer.
+
+  USE WHEN:
+  - The initiator is trying to seduce, please, or entice the target — voluntary display
+    as an act of desire, submission, or invitation.
+  - The initiator is commanded or pressured to display themselves (dominant target,
+    captive or subservient initiator).
+  - Playful or exhibitionistic context — the initiator enjoys being watched.
+  - The scene has established sexual or power-dynamic tension that makes this a
+    natural next beat.
+
+  REQUIRES: The initiator must have a female body. Male initiators are ineligible.
+
+  CONSEQUENCES vary by relationship and context:
+  - Wanted by target: arousal, approval, escalation of intimacy.
+  - Commanded: reinforces power dynamic, humiliation or pride depending on initiator.
+  - Observed by bystanders: public display — reactions range from arousal to offense.
+
+  DO NOT USE if the initiator has no motivation to display themselves and the scene
+  has no erotic, submissive, or provocative tension.
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: ShowingOffBody_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: The female NPC performing the display (must have female body)
+  - type: dynamic
+    name: akTarget
+    description: The observer — player or nearby NPC
+
+enabled: true
+defaultPriority: 4
+
+eligibilityRules:
+  - conditions:
+      - decoratorName: "is_in_combat"
+        arguments: ["currentActor"]
+        comparisonOperator: "=="
+        expectedValue: false
+    logicalOperator: "AND"
+    required: true
