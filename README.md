@@ -87,6 +87,15 @@ MCM (and script properties) expose toggles:
 - After updating, **reload SkyrimNet's config** (or restart) so new/changed actions are picked up.
 - This addon contains explicit and **non-consensual** themes. It is fiction for adult roleplay — use it within your own comfort and local laws.
 
+## Building from source
+
+This mod's own Papyrus scripts are in `Scripts/Source/` (`SkyrimNet_Baka*.psc`, `SNBakaUI.psc`) — shared
+so anyone can read, fork, or improve the logic. To **recompile** them you also need minimal compile stubs
+for the dependency APIs (SkyrimNet, SexLab, OStim `OThread`, `MfgConsoleFunc`, po3, `SKI_ConfigBase`, etc.)
+on the compiler import path; those aren't bundled here since they belong to their respective mods. Point the
+Papyrus compiler at this `Scripts/Source/` folder **plus** the dependency mods' script sources. The C++ source
+for `SNBaka_UI.dll` is a separate CommonLibSSE-NG project (not in this repo).
+
 ## Credits
 
 - **SkyrimNet** — the framework this builds on

@@ -2,3 +2,12 @@ customCategory: expression
 name: Facial Expressions
 description: "Make the speaker's face show an emotion for a few seconds — happy, angry, afraid, sad, pained, surprised, confused."
 enabled: true
+
+eligibilityRules:
+  - conditions:
+      - decoratorName: "is_in_combat"
+        arguments: ["currentActor"]
+        comparisonOperator: "=="
+        expectedValue: false
+    logicalOperator: "AND"
+    required: true
