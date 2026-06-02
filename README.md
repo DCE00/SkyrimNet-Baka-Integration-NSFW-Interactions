@@ -64,6 +64,14 @@ MCM (and script properties) expose toggles:
 - `fPoseHoldTime` — seconds a pose is held
 - spank cooldowns, male-target / player-target allowances, animated tears, etc.
 
+## Notes & tips
+
+- Run **Pandora / FNIS / Nemesis** after installing, or the paired animations and poses will T-pose.
+- Faces feel too strong or too flat? Adjust **`fExpressionIntensity`** (0.0–1.0) — there's no single right value, it depends on your follower/face setup.
+- Actions are chosen by SkyrimNet's model **in context** — give your characters fitting personalities and dispositions, and the scene mostly drives itself. The action descriptions tell the model *when* each one fits.
+- After updating, **reload SkyrimNet's config** (or restart) so new/changed actions are picked up.
+- This addon contains explicit and **non-consensual** themes. It is fiction for adult roleplay — use it within your own comfort and local laws.
+
 ## Credits
 
 - **SkyrimNet** — the framework this builds on
