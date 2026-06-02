@@ -44,3 +44,5 @@ eligibilityRules:
         expectedValue: false
     logicalOperator: "AND"
     required: true
+
+customCategory: intimate
