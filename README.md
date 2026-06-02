@@ -56,7 +56,7 @@ characters striking fitting body language while they speak.
 - SkyrimNet (+ SKSE64, Address Library)
 - [PrismaUI](https://www.nexusmods.com/skyrimspecialedition/mods/148718)
 - PapyrusUtil, MfgFix, powerofthree's Papyrus Extender
-- SexLab, SlaveTats
+- SlaveTats
 - [Emotional Tears Effect (EmoTears)](https://www.nexusmods.com/skyrimspecialedition/mods/122296) — for animated tears
 - [Baka Motion Data Pack](https://www.loverslab.com/files/file/26992-baka-motion-data-pack/) — the paired interaction animations; build with **FNIS / Nemesis / Pandora**
 
