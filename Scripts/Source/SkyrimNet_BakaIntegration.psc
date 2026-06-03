@@ -169,8 +169,7 @@ EndEvent
 
 Function Setup()
     UnregisterForAllModEvents()
-    SkyrimNetApi.RegisterDecorator("get_baka_state",        "SkyrimNet_BakaIntegration", "GetBakaState")
-    SkyrimNetApi.RegisterDecorator("is_in_baka_animation",  "SkyrimNet_BakaIntegration", "IsInBakaAnimation")
+    _RegisterDecorators()
     RegisterForModEvent("AEL_GameEnd",       "OnAELGameEnd")
     RegisterForModEvent("SNBaka_MenuChoice", "OnSNBakaMenuChoice")
     _bHasAcheron = Game.GetFormFromFile(0x00592D, "Acheron.esm") != None
@@ -191,8 +190,6 @@ Function Setup()
         _lastSpankFadeTime = Utility.GetCurrentGameTime()
     EndIf
     RegisterForSingleUpdateGameTime(SpankTatFadeRate)
-    SkyrimNetApi.RegisterDecorator("get_spank_state",             "SkyrimNet_BakaIntegration", "GetSpankState")
-    SkyrimNetApi.RegisterDecorator("get_nearby_furniture_actors", "SkyrimNet_BakaIntegration", "GetNearbyFurnitureActors")
     If fSpankCooldownSex <= 0.0 || fSpankCooldownSex > 5.0
         fSpankCooldownSex = 1.0
     EndIf
@@ -3128,8 +3125,21 @@ EndFunction
 ; ============================================================
 
 ; ---- Tat fade timer ----
+; Decorators live in SkyrimNet's runtime memory and are NOT saved with the game, so they
+; must be re-asserted on every load. The quest's OnPlayerLoadGame never fires (Quest scripts
+; don't receive it), so we re-register here from the persistent game-time heartbeat below as
+; well as on first init. RegisterDecorator is idempotent, so re-calling is harmless.
+Function _RegisterDecorators()
+    SkyrimNetApi.RegisterDecorator("get_baka_state",              "SkyrimNet_BakaIntegration", "GetBakaState")
+    SkyrimNetApi.RegisterDecorator("is_in_baka_animation",        "SkyrimNet_BakaIntegration", "IsInBakaAnimation")
+    SkyrimNetApi.RegisterDecorator("get_spank_state",             "SkyrimNet_BakaIntegration", "GetSpankState")
+    SkyrimNetApi.RegisterDecorator("get_nearby_furniture_actors", "SkyrimNet_BakaIntegration", "GetNearbyFurnitureActors")
+EndFunction
+
 Event OnUpdateGameTime()
     UnregisterForUpdateGameTime()
+    ; Re-assert decorators after a save load (they don't persist; see _RegisterDecorators).
+    _RegisterDecorators()
     If !PlayerRef
         PlayerRef = Game.GetPlayer()
     EndIf

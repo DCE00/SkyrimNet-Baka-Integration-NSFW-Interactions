@@ -37,7 +37,6 @@ parameterMapping:
 
 enabled: true
 defaultPriority: 4
-
 eligibilityRules:
   - conditions:
       - decoratorName: "is_in_combat"
@@ -46,5 +45,17 @@ eligibilityRules:
         expectedValue: false
     logicalOperator: "AND"
     required: true
-
-customCategory: display
+  - conditions:
+      - decoratorName: "get_faction_rank"
+        arguments: ["currentActor", "SexLabAnimatingFaction"]
+        comparisonOperator: "<"
+        expectedValue: 0
+    logicalOperator: "AND"
+    required: true
+  - conditions:
+      - decoratorName: "get_faction_rank"
+        arguments: ["currentActor", "OStimActorCountFaction"]
+        comparisonOperator: "<"
+        expectedValue: 0
+    logicalOperator: "AND"
+    required: true
