@@ -31,7 +31,6 @@ parameterMapping:
 
 enabled: true
 defaultPriority: 3
-
 eligibilityRules:
   - conditions:
       - decoratorName: "is_in_combat"
@@ -40,5 +39,3 @@ eligibilityRules:
         expectedValue: false
     logicalOperator: "AND"
     required: true
-
-customCategory: spanking
