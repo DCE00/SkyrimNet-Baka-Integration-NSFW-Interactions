@@ -1,0 +1,4 @@
+# The DLL C++ source is published for transparency/forks, but should NOT be in the
+# distributed mod archive (`git archive` / release zip) — end users only need the built DLL.
+dll-source/ export-ignore
+dll-source/** export-ignore

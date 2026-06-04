@@ -99,8 +99,13 @@ This mod's own Papyrus scripts are in `Scripts/Source/` (`SkyrimNet_Baka*.psc`, 
 so anyone can read, fork, or improve the logic. To **recompile** them you also need minimal compile stubs
 for the dependency APIs (SkyrimNet, SexLab, OStim `OThread`, `MfgConsoleFunc`, po3, `SKI_ConfigBase`, etc.)
 on the compiler import path; those aren't bundled here since they belong to their respective mods. Point the
-Papyrus compiler at this `Scripts/Source/` folder **plus** the dependency mods' script sources. The C++ source
-for `SNBaka_UI.dll` is a separate CommonLibSSE-NG project (not in this repo).
+Papyrus compiler at this `Scripts/Source/` folder **plus** the dependency mods' script sources.
+
+The C++ source for `SNBaka_UI.dll` is published in [`dll-source/`](dll-source/) (a CommonLibSSE-NG
+project — see [`dll-source/BUILD.md`](dll-source/BUILD.md)). It's there for transparency and forking;
+it is **excluded from the release archive** (end users only need the prebuilt DLL). Note that the DLL
+is only one piece — a working VR build would also require **SkyrimNet** and **PrismaUI** to support VR,
+which they currently do not.
 
 ## Credits
 
