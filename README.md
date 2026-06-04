@@ -50,19 +50,25 @@ characters striking fitting body language while they speak.
 - **Reactions** — animated tears, face / tear overlays that survive sex scenes, cover-self after a spank
 - **PrismaUI menus** for choosing interactions and setting up encounters
 
+## Compatibility
+
+Skyrim **SE (1.5.97)** and **AE (1.6.x)** only. **Skyrim VR is not supported** — the SKSE-plugin
+layer this relies on (SkyrimNet, PrismaUI, and the bundled `SNBaka_UI.dll`) targets the flatscreen
+runtime, not VR's separate runtime / SKSEVR / Address Library.
+
 ## Requirements
 
 **Core**
 - [SkyrimNet](https://goncalo22.github.io/SkyrimNet-GamePlugin/Installation%20Guide/skyrimnet-installation/) (+ SKSE64, [Address Library](https://www.nexusmods.com/skyrimspecialedition/mods/32444))
 - [PrismaUI](https://www.nexusmods.com/skyrimspecialedition/mods/148718)
 - [PapyrusUtil](https://www.nexusmods.com/skyrimspecialedition/mods/13048), [MfgFix](https://www.nexusmods.com/skyrimspecialedition/mods/11669), [powerofthree's Papyrus Extender](https://www.nexusmods.com/skyrimspecialedition/mods/22854)
-- [SlaveTats](https://www.loverslab.com/files/file/619-slavetats/)
+- [SlaveTatsNG](https://www.loverslab.com/files/file/35989-slavetatsng/) (or classic [SlaveTats](https://www.loverslab.com/files/file/619-slavetats/)) — for spank marks &amp; the sex-tear overlay. This mod bundles the `blank.dds` clear-texture, so SlaveTatsNG works without the old SlaveTats SE installed.
 - **A sex framework for escalation scenes — SexLab _or_ OStim.** Pick it in the MCM (Auto uses whichever is installed). Neither is a hard requirement; without one, escalation just won't start a scene.
 - [Emotional Tears Effect (EmoTears)](https://www.nexusmods.com/skyrimspecialedition/mods/122296) — for animated tears
 - [Baka Motion Data Pack](https://www.loverslab.com/files/file/26992-baka-motion-data-pack/) — the paired interaction animations; build with **FNIS / Nemesis / Pandora**
 
 **Optional (degrades gracefully if absent)**
-- [Acheron](https://www.nexusmods.com/skyrimspecialedition/mods/108159), [Flash Games – Struggling QTE](https://www.nexusmods.com/skyrimspecialedition/mods/121909), [Dynamic Feminine Female Modesty Animations OAR](https://www.nexusmods.com/skyrimspecialedition/mods/104374)
+- [Flash Games – Struggling QTE](https://www.nexusmods.com/skyrimspecialedition/mods/121909), [Dynamic Feminine Female Modesty Animations OAR](https://www.nexusmods.com/skyrimspecialedition/mods/104374)
 
 ## Installation
 
@@ -102,7 +108,7 @@ for `SNBaka_UI.dll` is a separate CommonLibSSE-NG project (not in this repo).
 - Paired interaction animations — *Babo / SLAP* animation authors
 - Cover-self reaction — driven by the *Dynamic Feminine Female Modesty Animations OAR* mod (Kahvipannu84 / Gunslicer); install it for that feature (no animations are bundled here)
 - Facial-expression morph values — [Additional Expressions Project](https://www.nexusmods.com/skyrimspecialedition/mods/72337) (optional; the values are baked in, so it isn't required at runtime)
-- Frameworks — SexLab, PrismaUI, PapyrusUtil, MfgFix, po3 Papyrus Extender, SlaveTats, EmoTears4NPCs, Acheron
+- Frameworks — SexLab, PrismaUI, PapyrusUtil, MfgFix, po3 Papyrus Extender, SlaveTats, EmoTears4NPCs
 
 > Bundled third-party animations/assets remain the property of their original authors and are
 > included per their permissions. If you are an author and want something removed, open an issue.

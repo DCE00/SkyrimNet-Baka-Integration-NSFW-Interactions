@@ -18,12 +18,13 @@ parameterMapping:
   - type: speaker
     name: akInitiator
     description: The character whose face shows the expression
-  - type: dynamic
+  - type: speaker
     name: akTarget
     description: Who they are reacting to (optional context; not required)
 
 enabled: true
 defaultPriority: 2
+customCategory: SNBaka_Expression
 eligibilityRules:
   - conditions:
       - decoratorName: "is_in_combat"

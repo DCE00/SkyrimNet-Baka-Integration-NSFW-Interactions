@@ -88,6 +88,36 @@
       align-items: baseline;
       gap: 8px;
     }
+
+    /* ── Window-size multiplier (UI scale) ── */
+    .ui-scale {
+      margin-left: auto;
+      align-self: center;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .ui-scale-btn {
+      width: 18px; height: 18px;
+      padding: 0;
+      line-height: 15px;
+      text-align: center;
+      font-size: 14px;
+      cursor: pointer;
+      border-radius: 2px;
+      color: rgba(220, 200, 150, 0.9);
+      background: rgba(196, 162, 72, 0.08);
+      border: 1px solid rgba(196, 162, 72, 0.40);
+    }
+    .ui-scale-btn:hover { background: rgba(196, 162, 72, 0.22); }
+    .ui-scale-val {
+      min-width: 34px;
+      text-align: center;
+      font-size: 10px;
+      letter-spacing: .08em;
+      color: rgba(196, 162, 72, 0.70);
+      font-variant-numeric: tabular-nums;
+    }
     .header-icon {
       color: rgba(196, 162, 72, 0.7);
       font-size: 13px;
@@ -308,6 +338,11 @@
       <span class="header-icon">◈</span>
       <span class="header-label" id="header-label">Interact</span>
       <span class="header-target" id="header-target"></span>
+      <span class="ui-scale" title="Window size">
+        <button class="ui-scale-btn" onclick="snbakaBumpScale(-1)">&minus;</button>
+        <span class="ui-scale-val" id="ui-scale-val">100%</span>
+        <button class="ui-scale-btn" onclick="snbakaBumpScale(1)">+</button>
+      </span>
     </div>
 
     <!-- ══ INTERACT MODE ══ -->
@@ -668,7 +703,43 @@ function _sendChoice(value) {
 //  OPEN / CLOSE ANIMATION
 // ════════════════════════════════════════════════════════════
 
+// ════════════════════════════════════════════════════════════
+//  WINDOW-SIZE MULTIPLIER  (UI scale)
+//  Scales the #panel via its `zoom`. Persisted in localStorage,
+//  applied on every open. No Papyrus/DLL involvement.
+// ════════════════════════════════════════════════════════════
+const SNBAKA_SCALE_KEY  = 'snbaka_ui_scale';
+const SNBAKA_BASE_ZOOM  = 1.5;   // must match the #panel base `zoom` in CSS
+const SNBAKA_SCALE_MIN  = 0.6;
+const SNBAKA_SCALE_MAX  = 2.0;
+const SNBAKA_SCALE_STEP = 0.1;
+
+function snbakaGetScale() {
+  let v = parseFloat(localStorage.getItem(SNBAKA_SCALE_KEY));
+  if (!isFinite(v)) v = 1.0;
+  return Math.min(SNBAKA_SCALE_MAX, Math.max(SNBAKA_SCALE_MIN, v));
+}
+
+function snbakaApplyScale() {
+  const s = snbakaGetScale();
+  const panel = document.getElementById('panel');
+  if (panel) panel.style.zoom = (SNBAKA_BASE_ZOOM * s).toFixed(3);
+  const val = document.getElementById('ui-scale-val');
+  if (val) val.textContent = Math.round(s * 100) + '%';
+}
+
+function snbakaBumpScale(dir) {
+  let s = snbakaGetScale() + dir * SNBAKA_SCALE_STEP;
+  s = Math.min(SNBAKA_SCALE_MAX, Math.max(SNBAKA_SCALE_MIN, Math.round(s * 100) / 100));
+  localStorage.setItem(SNBAKA_SCALE_KEY, String(s));
+  snbakaApplyScale();
+}
+
+// Apply the saved scale once at load (panel exists from the start, just hidden).
+snbakaApplyScale();
+
 function _open() {
+  snbakaApplyScale();
   document.getElementById('backdrop').classList.add('visible');
 }
 

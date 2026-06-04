@@ -41,6 +41,7 @@ parameterMapping:
 
 enabled: true
 defaultPriority: 2
+customCategory: SNBaka_Grab
 eligibilityRules:
   - conditions:
       - decoratorName: "is_in_combat"

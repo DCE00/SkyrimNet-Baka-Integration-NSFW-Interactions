@@ -1,0 +1,64 @@
+name: FlirtBreast
+description: |
+  An ESCALATION of flirting: YOU (the speaker) playfully fondle or grope the target's breasts —
+  a forward, sexual-but-still-flirtatious touch. Only available AFTER you have already flirted
+  with someone; it's a bolder step once the mood is heated.
+
+  WHEN A CHARACTER WOULD DO THIS:
+  - Flirting has escalated and you make a daring, sexual move on their chest
+  - A confident, lustful character pushing the encounter further
+  - The target is receptive (or you are dominant/forward enough to risk it)
+
+  DO NOT USE:
+  - In combat, hostility, or danger
+  - During an ongoing sex scene
+  - Without prior flirting to build to it
+
+  CONSEQUENCES:
+  - A brief breast-fondle animation (you touch, they are touched)
+  - Strongly escalates the encounter — can excite, offend, or provoke depending on the target
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: FlirtBreast_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: YOU — the one fondling. Voice only this character.
+  - type: dynamic
+    name: akTarget
+    description: The character whose breasts you fondle.
+
+enabled: true
+defaultPriority: 2
+customCategory: SNBaka_Intimate
+eligibilityRules:
+  - conditions:
+      - decoratorName: "is_in_combat"
+        arguments: ["currentActor"]
+        comparisonOperator: "=="
+        expectedValue: false
+    logicalOperator: "AND"
+    required: true
+  - conditions:
+      - decoratorName: "get_faction_rank"
+        arguments: ["currentActor", "SexLabAnimatingFaction"]
+        comparisonOperator: "<"
+        expectedValue: 0
+    logicalOperator: "AND"
+    required: true
+  - conditions:
+      - decoratorName: "get_faction_rank"
+        arguments: ["currentActor", "OStimActorCountFaction"]
+        comparisonOperator: "<"
+        expectedValue: 0
+    logicalOperator: "AND"
+    required: true
+  - conditions:
+      - decoratorName: "baka_flirted"
+        arguments: ["currentActor"]
+        comparisonOperator: "=="
+        expectedValue: "true"
+    logicalOperator: "AND"
+    required: true

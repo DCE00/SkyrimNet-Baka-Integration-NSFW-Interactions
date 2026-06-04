@@ -1,0 +1,64 @@
+name: FlirtPussy
+description: |
+  The boldest ESCALATION of flirting: YOU (the speaker) slip a hand between the target's legs /
+  fondle them below the waist — an overtly sexual, intimate touch. Only available AFTER you have
+  already flirted with someone; this is the furthest pre-sex step.
+
+  WHEN A CHARACTER WOULD DO THIS:
+  - Heated flirting where you make the most forward, sexual move
+  - A dominant or extremely confident character pressing for sex
+  - The target is plainly willing, or you are bold enough to chance it
+
+  DO NOT USE:
+  - In combat, hostility, or danger
+  - During an ongoing sex scene
+  - Without prior flirting built up to it — this is never an opener
+
+  CONSEQUENCES:
+  - A brief, overtly sexual fondle animation (you touch, they are touched)
+  - The strongest escalation short of sex — can ignite the encounter, or badly offend
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: FlirtPussy_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: YOU — the one touching. Voice only this character.
+  - type: dynamic
+    name: akTarget
+    description: The character you fondle below the waist.
+
+enabled: true
+defaultPriority: 2
+customCategory: SNBaka_Intimate
+eligibilityRules:
+  - conditions:
+      - decoratorName: "is_in_combat"
+        arguments: ["currentActor"]
+        comparisonOperator: "=="
+        expectedValue: false
+    logicalOperator: "AND"
+    required: true
+  - conditions:
+      - decoratorName: "get_faction_rank"
+        arguments: ["currentActor", "SexLabAnimatingFaction"]
+        comparisonOperator: "<"
+        expectedValue: 0
+    logicalOperator: "AND"
+    required: true
+  - conditions:
+      - decoratorName: "get_faction_rank"
+        arguments: ["currentActor", "OStimActorCountFaction"]
+        comparisonOperator: "<"
+        expectedValue: 0
+    logicalOperator: "AND"
+    required: true
+  - conditions:
+      - decoratorName: "baka_flirted"
+        arguments: ["currentActor"]
+        comparisonOperator: "=="
+        expectedValue: "true"
+    logicalOperator: "AND"
+    required: true
