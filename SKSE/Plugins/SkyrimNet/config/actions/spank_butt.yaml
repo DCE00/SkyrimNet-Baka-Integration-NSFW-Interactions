@@ -68,6 +68,7 @@ parameterMapping:
 
 enabled: true
 defaultPriority: 7
+customCategory: SNBaka_Spank
 eligibilityRules:
   - conditions:
       - decoratorName: "is_in_combat"

@@ -1,0 +1,64 @@
+name: FlirtFace
+description: |
+  An ESCALATION of flirting: YOU (the speaker) tenderly caress or cup the target's face — a soft,
+  affectionate, intimate touch. This only becomes available AFTER you have already flirted with
+  someone, as the next step when the mood has warmed.
+
+  WHEN A CHARACTER WOULD DO THIS:
+  - Flirtation has turned tender and you want gentle physical contact
+  - A seductive or affectionate moment where touching their face fits
+  - You are bold/forward and the target seems receptive
+
+  DO NOT USE:
+  - In combat, hostility, or danger
+  - During an ongoing sex scene
+  - Out of nowhere with no prior flirting
+
+  CONSEQUENCES:
+  - A brief, gentle face-caress animation (you touch, they are touched)
+  - Deepens intimacy or tension depending on the target's feelings
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: FlirtFace_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: YOU — the one caressing. Voice only this character.
+  - type: dynamic
+    name: akTarget
+    description: The character whose face you caress.
+
+enabled: true
+defaultPriority: 2
+customCategory: SNBaka_Intimate
+eligibilityRules:
+  - conditions:
+      - decoratorName: "is_in_combat"
+        arguments: ["currentActor"]
+        comparisonOperator: "=="
+        expectedValue: false
+    logicalOperator: "AND"
+    required: true
+  - conditions:
+      - decoratorName: "get_faction_rank"
+        arguments: ["currentActor", "SexLabAnimatingFaction"]
+        comparisonOperator: "<"
+        expectedValue: 0
+    logicalOperator: "AND"
+    required: true
+  - conditions:
+      - decoratorName: "get_faction_rank"
+        arguments: ["currentActor", "OStimActorCountFaction"]
+        comparisonOperator: "<"
+        expectedValue: 0
+    logicalOperator: "AND"
+    required: true
+  - conditions:
+      - decoratorName: "baka_flirted"
+        arguments: ["currentActor"]
+        comparisonOperator: "=="
+        expectedValue: "true"
+    logicalOperator: "AND"
+    required: true

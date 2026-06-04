@@ -35,6 +35,7 @@ parameterMapping:
 
 enabled: true
 defaultPriority: 5
+customCategory: SNBaka_Intimate
 eligibilityRules:
   - conditions:
       - decoratorName: "is_in_combat"

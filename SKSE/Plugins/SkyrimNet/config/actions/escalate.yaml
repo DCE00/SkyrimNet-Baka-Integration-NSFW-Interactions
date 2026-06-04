@@ -49,6 +49,7 @@ parameterMapping:
 
 enabled: true
 defaultPriority: 9
+customCategory: SNBaka_Scene
 eligibilityRules:
   - conditions:
       - decoratorName: "is_in_combat"
