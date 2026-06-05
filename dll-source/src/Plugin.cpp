@@ -1,4 +1,3 @@
-#include <spdlog/async.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
 #include "PapyrusFunctions.h"
@@ -44,8 +43,8 @@ bool SetupLog() {
     auto logPath = *logsFolder / std::format("{}.log", pluginName);
     std::shared_ptr<spdlog::logger> logger;
     try {
-      logger = spdlog::create_async_nb<spdlog::sinks::basic_file_sink_mt>(
-          static_cast<std::string>(pluginName), logPath.string(), true);
+      auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(logPath.string(), true);
+      logger = std::make_shared<spdlog::logger>(static_cast<std::string>(pluginName), std::move(sink));
     } catch (const std::exception& e) {
       SKSE::stl::report_and_fail(std::format("{} Failed to open log file '{}': {}",
                                            static_cast<std::string>(pluginName), logPath.string(), e.what()));

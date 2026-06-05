@@ -33,7 +33,7 @@ cmake --build --preset release
 The DLL is copied to the mod's plugins folder by a post-build step (see `CMakeLists.txt` — adjust
 the destination path there to your own mod install):
 ```
-<your SkyrimNet_BakaIntegration mod folder>\SKSE\Plugins\SNBaka_UI.dll
+<your SkyrimNet_BakaIntegration mod folder>\SKSE\Plugins\SkyrimNet_BakaIntegration.dll
 ```
 
 ## What happens after you install it
