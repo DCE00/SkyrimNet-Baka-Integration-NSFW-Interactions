@@ -3437,7 +3437,8 @@ Function _RegisterDecorators()
     SkyrimNetApi.RegisterDecorator("is_in_baka_animation",        "SkyrimNet_BakaIntegration", "IsInBakaAnimation")
     SkyrimNetApi.RegisterDecorator("get_spank_state",             "SkyrimNet_BakaIntegration", "GetSpankState")
     SkyrimNetApi.RegisterDecorator("get_nearby_furniture_actors", "SkyrimNet_BakaIntegration", "GetNearbyFurnitureActors")
-    SkyrimNetApi.RegisterDecorator("baka_flirted",                "SkyrimNet_BakaIntegration", "GetFlirted")
+    ; baka_flirted decorator removed — the flirt escalations self-gate via their descriptions now.
+    ; (GetFlirted is kept below, unused, so any stale SkyrimNet registration still resolves cleanly.)
 EndFunction
 
 Event OnUpdateGameTime()
