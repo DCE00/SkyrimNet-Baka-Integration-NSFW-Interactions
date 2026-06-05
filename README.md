@@ -53,7 +53,7 @@ characters striking fitting body language while they speak.
 ## Compatibility
 
 Skyrim **SE (1.5.97)** and **AE (1.6.x)** only. **Skyrim VR is not supported** — the SKSE-plugin
-layer this relies on (SkyrimNet, PrismaUI, and the bundled `SNBaka_UI.dll`) targets the flatscreen
+layer this relies on (SkyrimNet, PrismaUI, and the bundled `SkyrimNet_BakaIntegration.dll`) targets the flatscreen
 runtime, not VR's separate runtime / SKSEVR / Address Library.
 
 ## Requirements
@@ -101,7 +101,7 @@ for the dependency APIs (SkyrimNet, SexLab, OStim `OThread`, `MfgConsoleFunc`, p
 on the compiler import path; those aren't bundled here since they belong to their respective mods. Point the
 Papyrus compiler at this `Scripts/Source/` folder **plus** the dependency mods' script sources.
 
-The C++ source for `SNBaka_UI.dll` is published in [`dll-source/`](dll-source/) (a CommonLibSSE-NG
+The C++ source for `SkyrimNet_BakaIntegration.dll` is published in [`dll-source/`](dll-source/) (a CommonLibSSE-NG
 project — see [`dll-source/BUILD.md`](dll-source/BUILD.md)). It's there for transparency and forking;
 it is **excluded from the release archive** (end users only need the prebuilt DLL). Note that the DLL
 is only one piece — a working VR build would also require **SkyrimNet** and **PrismaUI** to support VR,

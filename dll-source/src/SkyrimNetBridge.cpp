@@ -1,10 +1,4 @@
-#include "PCH.h"
 #include "SkyrimNetBridge.h"
-
-// IMPORTANT: SkyrimNet_PublicAPI.h DEFINES the Public* function-pointer globals at file
-// scope, so it must be included in EXACTLY ONE translation unit. This is that unit — do
-// not include it anywhere else (it would cause LNK2005 multiple-definition errors).
-#include "SkyrimNet_PublicAPI.h"
 
 namespace {
     // --- Sex-scene factions (resolved lazily; null when the framework isn't installed) ---
@@ -54,7 +48,7 @@ namespace {
             id,                 // customCategory (what YAML actions reference)
             "",                 // customParentCategory ("" = top level)
             "");                // tagsCSV
-        SKSE::log::info("[SNBaka] RegisterSubCategory '{}' -> {}", id, ok);
+        SKSE::log::info("RegisterSubCategory '{}' -> {}", id, ok);
     }
 
     void RegisterCategories() {
@@ -94,16 +88,16 @@ namespace {
 
 void SkyrimNetBridge::Init() {
     if (!FindFunctions()) {
-        SKSE::log::warn("[SNBaka] SkyrimNet.dll not found - action categories not registered.");
+        SKSE::log::warn("SkyrimNet.dll not found - action categories not registered.");
         return;
     }
     const int ver = PublicGetVersion ? PublicGetVersion() : 0;
-    SKSE::log::info("[SNBaka] SkyrimNet C++ API v{} detected.", ver);
+    SKSE::log::info("SkyrimNet C++ API v{} detected.", ver);
 
     if (!PublicRegisterCPPSubCategory) {
-        SKSE::log::warn("[SNBaka] PublicRegisterCPPSubCategory unavailable (needs SkyrimNet API v2+); skipping categories.");
+        SKSE::log::warn("PublicRegisterCPPSubCategory unavailable (needs SkyrimNet API v2+); skipping categories.");
         return;
     }
     RegisterCategories();
-    SKSE::log::info("[SNBaka] Category registration complete.");
+    SKSE::log::info("Category registration complete.");
 }

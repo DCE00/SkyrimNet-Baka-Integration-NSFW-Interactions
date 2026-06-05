@@ -2104,7 +2104,7 @@ Function _EscalationCleanup(Actor akA1, Actor akA2)
     _StartCooldown(akA1)
 EndFunction
 
-; Called by SNBaka_UI.dll when the player finishes the encounter wizard.
+; Called by SkyrimNet_BakaIntegration.dll when the player finishes the encounter wizard.
 ; The DLL splits the player's picks into these strings (or role="cancel").
 ; akAggressor/akVictim are the escalation pair (one is the player).
 Function _StartSexLabScene(String role, String intensity, String flavor, String actType, Actor akAggressor, Actor akVictim)
@@ -3294,7 +3294,7 @@ Event OnSNBakaMenuChoice(String eventName, String strArg, Float numArg, Form sen
     EndIf
 EndEvent
 
-; Called by SNBaka_UI.dll with the actors captured when the menu opened.
+; Called by SkyrimNet_BakaIntegration.dll with the actors captured when the menu opened.
 ; Sets _pending* and runs the normal dispatch synchronously — no open-menu gap
 ; for the values to be clobbered in.
 Function _DispatchInteractActionWithActors(Int choice, Actor cst, Actor tgt)

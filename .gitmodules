@@ -1,0 +1,3 @@
+[submodule "dll-source/external/commonlibsse-ng"]
+	path = dll-source/external/commonlibsse-ng
+	url = https://github.com/alandtse/CommonLibVR.git
