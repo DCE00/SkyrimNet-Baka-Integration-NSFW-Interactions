@@ -1,0 +1,27 @@
+SkyrimNet Baka Integration — VR SKSE plugin (SNBaka_UI.dll)
+============================================================
+
+You selected the EXPERIMENTAL VR option, which does NOT include the SKSE plugin DLL.
+
+The mod's Papyrus calls into SNBaka_UI.dll (the interaction menu, target picking, etc.)
+will FAIL until a VR build of that DLL exists at:
+
+    SKSE/Plugins/SNBaka_UI.dll   (next to this file)
+
+Why no VR DLL is shipped:
+- The DLL is built with CommonLibSSE-NG and the shipped one targets SE/AE only.
+- The C++ code is runtime-portable (no hardcoded offsets / Address Library IDs), so a
+  VR-capable build is feasible — it just needs to be compiled with VR runtime support
+  and tested on actual Skyrim VR, which the author cannot do.
+
+To build it (for modders):
+1. Get the source: https://github.com/DCE00/SkyrimNet-Baka-Integration-NSFW-Interactions
+   -> the dll-source/ folder (see dll-source/BUILD.md).
+2. Build with CommonLibSSE-NG configured for VR runtime support.
+3. Install the VR Address Library for SKSEVR.
+4. Drop the resulting SNBaka_UI.dll into this folder.
+
+NOTE: this also requires SkyrimNet and PrismaUI themselves to support Skyrim VR.
+
+If you build a working VR DLL, please open an issue / PR on the GitHub repo so it can be
+folded into the installer for everyone.
