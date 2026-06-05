@@ -1,5 +1,4 @@
 #include "PapyrusFunctions.h"
-#include <SKSE/SKSE.h>
 #include "PrismaUIBridge.h"
 
 static constexpr const char* kScriptName = "SNBakaUI";
@@ -7,7 +6,7 @@ static constexpr const char* kScriptName = "SNBakaUI";
 static bool SNBakaUI_IsAvailable(RE::StaticFunctionTag*) {
     const bool result = PrismaUIBridge::IsAvailable();
     if (!result)
-        SKSE::log::warn("[SNBakaUI] IsAvailable() = false — view invalid, will try to recover.");
+        SKSE::log::warn("IsAvailable() = false — view invalid, will try to recover.");
     return result;
 }
 
@@ -30,7 +29,7 @@ static bool SNBakaUI_IsCraftingTemptation(RE::StaticFunctionTag*, RE::TESObjectR
 
 static void SNBakaUI_ShowSexSpankMenu(RE::StaticFunctionTag*,
                                       RE::BSFixedString json) {
-    SKSE::log::info("[SNBakaUI] ShowSexSpankMenu native called.");
+    SKSE::log::info("ShowSexSpankMenu native called.");
     PrismaUIBridge::ShowSexSpankMenu(json.c_str() ? json.c_str() : "{}");
 }
 
@@ -47,6 +46,6 @@ bool PapyrusFunctions::Register(RE::BSScript::IVirtualMachine* vm) {
     vm->RegisterFunction("SetNoCollision",      kScriptName, SNBakaUI_SetNoCollision);
     vm->RegisterFunction("IsCraftingTemptation", kScriptName, SNBakaUI_IsCraftingTemptation);
     vm->RegisterFunction("ShowEncounterMenu",   kScriptName, SNBakaUI_ShowEncounterMenu);
-    SKSE::log::info("[SNBakaUI] Papyrus functions registered.");
+    SKSE::log::info("Papyrus functions registered.");
     return true;
 }

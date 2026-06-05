@@ -1,8 +1,14 @@
 {
-    "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
-    "name": "snbaka-ui",
-    "version-string": "1.0.0",
-    "dependencies": [
-        "commonlibsse-ng"
-    ]
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "skyrimnet-bakaintegration",
+  "dependencies": [
+    "fmt",
+    "directxmath",
+    "directxtk",
+    "rapidcsv",
+    {
+      "name": "spdlog",
+      "features": ["wchar"]
+    }
+  ]
 }
