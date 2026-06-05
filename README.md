@@ -52,9 +52,9 @@ characters striking fitting body language while they speak.
 
 ## Compatibility
 
-Skyrim **SE (1.5.97)** and **AE (1.6.x)** only. **Skyrim VR is not supported** — the SKSE-plugin
-layer this relies on (SkyrimNet, PrismaUI, and the bundled `SkyrimNet_BakaIntegration.dll`) targets the flatscreen
-runtime, not VR's separate runtime / SKSEVR / Address Library.
+Skyrim **SE (1.5.97)**, **AE (1.6.x)**, and **VR**. The SKSE plugin is built with
+**CommonLibSSE-NG / CommonLibVR**, so a single `SkyrimNet_BakaIntegration.dll` runs on all three
+runtimes. (VR additionally needs SkyrimNet and PrismaUI themselves to work in VR.)
 
 ## Requirements
 
@@ -101,11 +101,10 @@ for the dependency APIs (SkyrimNet, SexLab, OStim `OThread`, `MfgConsoleFunc`, p
 on the compiler import path; those aren't bundled here since they belong to their respective mods. Point the
 Papyrus compiler at this `Scripts/Source/` folder **plus** the dependency mods' script sources.
 
-The C++ source for `SkyrimNet_BakaIntegration.dll` is published in [`dll-source/`](dll-source/) (a CommonLibSSE-NG
-project — see [`dll-source/BUILD.md`](dll-source/BUILD.md)). It's there for transparency and forking;
-it is **excluded from the release archive** (end users only need the prebuilt DLL). Note that the DLL
-is only one piece — a working VR build would also require **SkyrimNet** and **PrismaUI** to support VR,
-which they currently do not.
+The C++ source for `SkyrimNet_BakaIntegration.dll` is published in [`dll-source/`](dll-source/) (a
+CommonLibSSE-NG / CommonLibVR project — see [`dll-source/BUILD.md`](dll-source/BUILD.md)). It's there
+for transparency and forking; it is **excluded from the release archive** (end users only need the
+prebuilt DLL). CommonLibVR is vendored as a git submodule, so clone with `--recurse-submodules`.
 
 ## Credits
 
@@ -114,6 +113,7 @@ which they currently do not.
 - Cover-self reaction — driven by the *Dynamic Feminine Female Modesty Animations OAR* mod (Kahvipannu84 / Gunslicer); install it for that feature (no animations are bundled here)
 - Facial-expression morph values — [Additional Expressions Project](https://www.nexusmods.com/skyrimspecialedition/mods/72337) (optional; the values are baked in, so it isn't required at runtime)
 - Frameworks — SexLab, PrismaUI, PapyrusUtil, MfgFix, po3 Papyrus Extender, SlaveTats, EmoTears4NPCs
+- CommonLibSSE-NG / CommonLibVR migration (single SE/AE/VR build) — **langfod**
 
 > Bundled third-party animations/assets remain the property of their original authors and are
 > included per their permissions. If you are an author and want something removed, open an issue.
