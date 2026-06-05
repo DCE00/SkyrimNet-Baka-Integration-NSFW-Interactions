@@ -1,28 +1,67 @@
 {
-    "version": 3,
-    "configurePresets": [
-        {
-            "name": "release",
-            "displayName": "Release (x64)",
-            "generator": "Ninja",
-            "binaryDir": "${sourceDir}/build/release",
-            "architecture": { "value": "x64", "strategy": "external" },
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "CMAKE_CXX_COMPILER": "C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/cl.exe",
-                "CMAKE_MAKE_PROGRAM": "C:/Program Files/Microsoft Visual Studio/18/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe",
-                "CMAKE_CXX_FLAGS": "/permissive- /Zc:preprocessor /EHsc /MP /W3 -DWIN32_LEAN_AND_MEAN -DNOMINMAX",
-                "CMAKE_TOOLCHAIN_FILE": "C:/vcpkg/scripts/buildsystems/vcpkg.cmake",
-                "VCPKG_TARGET_TRIPLET": "x64-windows-static-md",
-                "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDLL",
-                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
-            }
-        }
-    ],
-    "buildPresets": [
-        {
-            "name": "release",
-            "configurePreset": "release"
-        }
-    ]
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "installDir": "${sourceDir}/install/${presetName}",
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "warnings": {
+        "dev": false
+      },
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "cl.exe",
+
+        "VCPKG_TARGET_TRIPLET": "x64-windows-static",
+        "VCPKG_HOST_TRIPLET": "x64-windows-static",
+        "VCPKG_INSTALLED_DIR": "${sourceDir}/build/vcpkg_installed",
+        "VCPKG_INSTALL_OPTIONS": "--no-print-usage",
+        "VCPKG_VERBOSE": "OFF",
+
+        "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreaded$<$<CONFIG:Debug>:Debug>",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_CXX_FLAGS": "/permissive- /Zc:preprocessor /W4 /utf-8",
+        "CMAKE_C_FLAGS_DEBUG": "/DWIN32_LEAN_AND_MEAN /DNOMINMAX /DUNICODE /D_UNICODE",
+        "CMAKE_CXX_FLAGS_DEBUG": "/DWIN32_LEAN_AND_MEAN /DNOMINMAX /DUNICODE /D_UNICODE",
+        "CMAKE_C_FLAGS_RELEASE": "/DWIN32_LEAN_AND_MEAN /DNOMINMAX /DUNICODE /D_UNICODE",
+        "CMAKE_CXX_FLAGS_RELEASE": "/DWIN32_LEAN_AND_MEAN /DNOMINMAX /DUNICODE /D_UNICODE",
+
+        "CMAKE_CXX_STANDARD": "23",
+        "CMAKE_CXX_STANDARD_REQUIRED": "ON",
+        "CMAKE_CXX_EXTENSIONS": "OFF"
+      }
+    },
+    {
+      "name": "debug",
+      "inherits": ["base"],
+      "displayName": "Debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "release",
+      "inherits": ["base"],
+      "displayName": "Release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "debug"
+    },
+    {
+      "name": "release",
+      "configurePreset": "release"
+    }
+  ]
 }

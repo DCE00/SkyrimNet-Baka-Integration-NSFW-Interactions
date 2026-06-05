@@ -1,10 +1,11 @@
 #pragma once
-#include "PrismaUI_API.h"
-#include <string>
-#include <atomic>
+
 #include <array>
+#include <atomic>
+#include <string>
 #include <vector>
-#include <RE/F/FormTypes.h>
+
+#include "PrismaUI_API.h"
 
 namespace RE { class Actor; }
 
@@ -47,6 +48,7 @@ private:
     enum class MenuMode { None, Interact, SexSpank, Encounter };
 
     static inline PRISMA_UI_API::IVPrismaUI1* s_prisma = nullptr;
+    static inline PRISMA_UI_API::IVPrismaUI2* s_prismav2 = nullptr;
     static inline PrismaView                  s_view   = 0;
     static inline std::atomic<MenuMode>       s_mode   = MenuMode::None;
 
