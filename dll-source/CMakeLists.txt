@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-add_compile_definitions(-D_WIN32_WINNT=0x0A00)
+add_compile_definitions(_WIN32_WINNT=0x0A00)
 
 if(POLICY CMP0135)
     cmake_policy(SET CMP0135 NEW)
@@ -26,7 +26,6 @@ set(FETCHCONTENT_BASE_DIR "${BUILD_ROOT}/external_builds")
 include(CompilerFlags)
 include(commonlibsse)
 
-include_directories(${CMAKE_SOURCE_DIR}/external/commonlibsse-ng/include)
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CMAKE_SOURCE_DIR}/src)
 

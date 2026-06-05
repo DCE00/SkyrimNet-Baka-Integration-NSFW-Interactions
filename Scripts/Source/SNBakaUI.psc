@@ -1,4 +1,4 @@
-; Papyrus stub for SNBaka_UI.dll (SKSE plugin).
+; Papyrus stub for SkyrimNet_BakaIntegration.dll (SKSE plugin).
 ; If the DLL is absent all three functions are no-ops / return false,
 ; so the quest script falls back to vanilla Message.Show() menus.
 Scriptname SNBakaUI

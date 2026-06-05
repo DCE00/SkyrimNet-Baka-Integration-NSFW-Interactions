@@ -18,8 +18,8 @@ set(CMAKE_MESSAGE_LOG_LEVEL INFO)
 
 # Always build CommonLibSSE in Release mode to disable assertions and enable optimizations
 set(CMAKE_BUILD_TYPE "Release")
-add_compile_definitions(-D_CRT_SECURE_NO_WARNINGS)
-add_compile_definitions(-DNDEBUG)
+add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+add_compile_definitions(NDEBUG)
 
 # Disable CommonLibSSE tests when building as subdirectory
 set(BUILD_TESTS OFF CACHE BOOL "Disable CommonLibSSE tests" FORCE)
