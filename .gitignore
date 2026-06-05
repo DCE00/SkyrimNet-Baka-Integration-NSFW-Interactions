@@ -12,8 +12,9 @@ Scripts/Source/*.psc
 !Scripts/Source/SkyrimNet_Baka*.psc
 !Scripts/Source/SNBakaUI.psc
 
-# ───────────── Build tools (NOT shipped) ─────────────
+# ───────────── Build tools / artifacts (NOT shipped) ─────────────
 compile.bat
+*.pdb
 
 # ───────────── Local backups ─────────────
 *.zip
@@ -24,6 +25,7 @@ compile.bat
 # ───────────── Mod-manager / editor / agent local metadata ─────────────
 meta.ini
 .vscode/
+.claude/
 
 # ───────────── OS cruft ─────────────
 Thumbs.db
