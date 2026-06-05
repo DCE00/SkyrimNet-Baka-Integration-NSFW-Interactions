@@ -1,11 +1,9 @@
-#include "PCH.h"
-#include "PrismaUIBridge.h"
-#include "PapyrusFunctions.h"
-#include "SkyrimNetBridge.h"
 #include <spdlog/sinks/basic_file_sink.h>
-#include <RE/B/BSInputDeviceManager.h>
-#include <RE/I/InputEvent.h>
-#include <RE/B/ButtonEvent.h>
+
+#include "PapyrusFunctions.h"
+#include "PrismaUIBridge.h"
+#include "SkyrimNetBridge.h"
+
 
 // Closes the active PrismaUI menu on ESC or Tab so the player isn't stuck.
 class MenuInputHandler : public RE::BSTEventSink<RE::InputEvent*> {
@@ -20,15 +18,15 @@ public:
         if (!a_event || !PrismaUIBridge::IsMenuOpen())
             return RE::BSEventNotifyControl::kContinue;
 
-        for (auto* ev = *a_event; ev; ev = ev->next) {
+        for (auto* ev = *a_event; ev; ev = ev->next) {            
             if (ev->GetEventType() != RE::INPUT_EVENT_TYPE::kButton) continue;
-            if (ev->GetDevice()    != RE::INPUT_DEVICE::kKeyboard)   continue;
+            if (ev->GetDevice() != RE::INPUT_DEVICE::kKeyboard)   continue;
             auto* btn = ev->AsButtonEvent();
             if (!btn || !btn->IsDown()) continue;
 
             constexpr std::uint32_t kEscape = 1;
             constexpr std::uint32_t kTab    = 15;
-            if (btn->idCode == kEscape || btn->idCode == kTab) {
+            if (btn->GetIDCode() == kEscape || btn->GetIDCode() == kTab) {
                 PrismaUIBridge::CancelMenu();
                 return RE::BSEventNotifyControl::kStop;
             }
@@ -37,21 +35,37 @@ public:
     }
 };
 
-static void SetupLog() {
+bool SetupLog() {
     auto logsFolder = SKSE::log::log_directory();
-    if (!logsFolder) return;
-    auto logPath = *logsFolder / "SNBaka_UI.log";
-    auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(logPath.string(), true);
-    auto logger = std::make_shared<spdlog::logger>("SNBaka_UI", std::move(sink));
+    if (!logsFolder) return false;
+
+    auto pluginName = SKSE::PluginDeclaration::GetSingleton()->GetName();
+    auto logPath = *logsFolder / std::format("{}.log", pluginName);
+    std::shared_ptr<spdlog::logger> logger;
+    try {
+      auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(logPath.string(), true);
+      logger = std::make_shared<spdlog::logger>(static_cast<std::string>(pluginName), std::move(sink));
+    } catch (const std::exception& e) {
+      SKSE::stl::report_and_fail(std::format("{} Failed to open log file '{}': {}",
+                                           static_cast<std::string>(pluginName), logPath.string(), e.what()));
+      return false;
+    }
+    logger->set_pattern("[%Y-%m-%d %T.%e] [%l] [%s:%#] %v");
     logger->set_level(spdlog::level::trace);
     logger->flush_on(spdlog::level::trace);
     spdlog::set_default_logger(std::move(logger));
+
+    return true;
 }
 
 SKSEPluginLoad(const SKSE::LoadInterface* skse) {
-    SKSE::Init(skse);
-    SetupLog();
-    SKSE::log::info("[SNBakaUI] Plugin loaded.");
+    SKSE::Init(skse, false);
+    if (!SetupLog()) {
+        return false;
+    }      
+    SKSE::log::info("{} {} loaded", SKSE::GetPluginName(), SKSE::GetPluginVersion());
+    SKSE::log::info(" CommonLibSSE-NG v{}", COMMONLIBSSE_VERSION);
+    SKSE::log::info(" Running on Skyrim v{}", REL::Module::get().version().string());
 
     SKSE::GetMessagingInterface()->RegisterListener([](SKSE::MessagingInterface::Message* msg) {
         switch (msg->type) {
@@ -64,7 +78,7 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse) {
             // lazily if PrismaUI ever reports the view invalid.
             PrismaUIBridge::CreateMenuView();
             RE::BSInputDeviceManager::GetSingleton()->AddEventSink(MenuInputHandler::GetSingleton());
-            SKSE::log::info("[SNBakaUI] Input handler registered.");
+            SKSE::log::info("Input handler registered.");
             // Resolve SkyrimNet's C++ API and register our action categories.
             SkyrimNetBridge::Init();
             break;
