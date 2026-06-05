@@ -55,10 +55,3 @@ eligibilityRules:
         expectedValue: 0
     logicalOperator: "AND"
     required: true
-  - conditions:
-      - decoratorName: "baka_flirted"
-        arguments: ["currentActor"]
-        comparisonOperator: "=="
-        expectedValue: "true"
-    logicalOperator: "AND"
-    required: true
