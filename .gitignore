@@ -1,3 +1,9 @@
+build/
+out/
+vcpkg_installed/
+*.user
+.vs/
+/dist
 # ───────────── Papyrus source ─────────────
 # Ship OUR scripts (so others can read / improve / fork the logic), but NOT the third-party
 # compile stubs (Acheron, SexLabFramework, SkyrimNetApi, MfgConsoleFunc, OThread, SKI_ConfigBase, …)
@@ -17,7 +23,6 @@ compile.bat
 
 # ───────────── Mod-manager / editor / agent local metadata ─────────────
 meta.ini
-.claude/
 .vscode/
 
 # ───────────── OS cruft ─────────────
