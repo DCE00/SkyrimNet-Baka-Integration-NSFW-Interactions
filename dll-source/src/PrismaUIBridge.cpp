@@ -1,17 +1,9 @@
-#include <SKSE/SKSE.h>
 #include "PrismaUIBridge.h"
+
+#include <algorithm>
 #include <cstdlib>
 #include <format>
-#include <RE/V/VirtualMachine.h>
-#include <RE/F/FunctionArguments.h>
-#include <RE/T/TESDataHandler.h>
-#include <RE/T/TESQuest.h>
-#include <RE/T/TESObjectCELL.h>
-#include <RE/P/PlayerCharacter.h>
-#include <RE/C/CrosshairPickData.h>
-#include <RE/T/TESFurniture.h>
-#include <RE/RTTI.h>
-#include <algorithm>
+
 
 static constexpr const char* kMenuHTMLPath    = "SNBaka_Menu/index.html";
 static std::vector<RE::FormID> s_noCollisionActors;
@@ -38,11 +30,11 @@ static bool IsPlayerInSexAnimation() noexcept {
 static RE::Actor* GetCrosshairActor() noexcept {
     auto* pick = RE::CrosshairPickData::GetSingleton();
     if (!pick) return nullptr;
-    if (auto ref = pick->targetActor.get()) {
+    if (auto ref = pick->targetActor[0].get()) {
         if (auto* a = skyrim_cast<RE::Actor*>(ref.get()))
             return a;
     }
-    if (auto ref = pick->target.get()) {
+    if (auto ref = pick->target[0].get()) {
         if (auto* a = skyrim_cast<RE::Actor*>(ref.get()))
             return a;
     }
@@ -58,8 +50,8 @@ static RE::Actor* FindNearestLivingActor(float radius) noexcept {
     RE::Actor* best   = nullptr;
     float      bestSq = radius * radius;
     cell->ForEachReferenceInRange(origin, radius,
-        [&](RE::TESObjectREFR& refr) -> RE::BSContainer::ForEachResult {
-            auto* a = skyrim_cast<RE::Actor*>(&refr);
+        [&](RE::TESObjectREFR* refr) -> RE::BSContainer::ForEachResult {
+            auto* a = skyrim_cast<RE::Actor*>(refr);
             if (!a || a->IsPlayerRef() || a->IsDead())
                 return RE::BSContainer::ForEachResult::kContinue;
             const auto  p  = a->GetPosition();
@@ -88,7 +80,7 @@ static void SetActorNoCharCollision(RE::Actor* actor, bool disable, bool a_log =
     // if (disable) actor->GetActorRuntimeData().boolBits.set(RE::Actor::BOOL_BITS::kPlayerTeammate);
     // else         actor->GetActorRuntimeData().boolBits.reset(RE::Actor::BOOL_BITS::kPlayerTeammate);
     if (a_log) {
-        SKSE::log::info("[SNBakaUI]   collision no-op for '{}' (disable={}, teammate flag abandoned)",
+        SKSE::log::info("  collision no-op for '{}' (disable={}, teammate flag abandoned)",
             actor->GetDisplayFullName(), disable);
     }
 }
@@ -104,7 +96,7 @@ void PrismaUIBridge::RestoreTrackedCollision() noexcept {
         SetActorNoCharCollision(actor, false);
     }
     s_noCollisionActors.clear();
-    SKSE::log::info("[SNBakaUI] RestoreTrackedCollision: done.");
+    SKSE::log::info("RestoreTrackedCollision: done.");
 }
 
 // Per-actor collision toggle, exposed to Papyrus.  Called for both participants
@@ -115,7 +107,7 @@ void PrismaUIBridge::SetActorCollision(RE::Actor* actor, bool disable) noexcept 
     // Never flag the PLAYER as their own teammate.  DFC disables the NPC's collision
     // against the player, so flagging just the NPC is enough.
     if (actor->IsPlayerRef()) {
-        SKSE::log::info("[SNBakaUI] SetActorCollision: skipping player.");
+        SKSE::log::info("SetActorCollision: skipping player.");
         return;
     }
     const auto id = actor->GetFormID();
@@ -125,7 +117,7 @@ void PrismaUIBridge::SetActorCollision(RE::Actor* actor, bool disable) noexcept 
         SetActorNoCharCollision(actor, true, /*a_log=*/!alreadyTracked);
         if (!alreadyTracked) {
             s_noCollisionActors.push_back(id);
-            SKSE::log::info("[SNBakaUI] SetActorCollision: '{}' disable=true (tracked={})",
+            SKSE::log::info("SetActorCollision: '{}' disable=true (tracked={})",
                 actor->GetDisplayFullName(), s_noCollisionActors.size());
         }
         return;
@@ -135,7 +127,7 @@ void PrismaUIBridge::SetActorCollision(RE::Actor* actor, bool disable) noexcept 
             std::remove(s_noCollisionActors.begin(), s_noCollisionActors.end(), id),
             s_noCollisionActors.end());
     }
-    SKSE::log::info("[SNBakaUI] SetActorCollision: '{}' disable={} (tracked={})",
+    SKSE::log::info("SetActorCollision: '{}' disable={} (tracked={})",
         actor->GetDisplayFullName(), disable, s_noCollisionActors.size());
 }
 
@@ -159,10 +151,13 @@ bool PrismaUIBridge::IsAlchemyOrEnchantingFurniture(RE::TESObjectREFR* furniture
 void PrismaUIBridge::RequestAPI() noexcept {
     s_prisma = static_cast<PRISMA_UI_API::IVPrismaUI1*>(
         PRISMA_UI_API::RequestPluginAPI(PRISMA_UI_API::InterfaceVersion::V1));
-    if (s_prisma)
-        SKSE::log::info("[SNBakaUI] PrismaUI API acquired.");
-    else
-        SKSE::log::warn("[SNBakaUI] PrismaUI not found — menus will fall back to vanilla messageboxes.");
+    if (s_prisma) {
+        SKSE::log::info("PrismaUI API acquired.");
+        s_prismav2 = PRISMA_UI_API::RequestPluginAPI<PRISMA_UI_API::IVPrismaUI2>();
+    }
+    else {
+        SKSE::log::warn("PrismaUI not found — menus will fall back to vanilla messageboxes.");
+    }    
 }
 
 void PrismaUIBridge::CreateMenuView() noexcept {
@@ -170,12 +165,37 @@ void PrismaUIBridge::CreateMenuView() noexcept {
     if (s_view && s_prisma->IsValid(s_view)) return; // already valid
     s_view = s_prisma->CreateView(kMenuHTMLPath);
     if (!s_prisma->IsValid(s_view)) {
-        SKSE::log::error("[SNBakaUI] Failed to create SNBaka_Menu view at '{}'.", kMenuHTMLPath);
+        SKSE::log::error("Failed to create SNBaka_Menu view at '{}'.", kMenuHTMLPath);
         return;
     }
     s_prisma->Hide(s_view);
     s_prisma->RegisterJSListener(s_view, "snbaka_chose", OnJSChoice);
-    SKSE::log::info("[SNBakaUI] SNBaka_Menu view created and JS listener registered.");
+    SKSE::log::info("SNBaka_Menu view created and JS listener registered.");
+
+    if (s_prismav2) {
+        SKSE::log::info("PrismaUI v2 found: registering Javascript logging callback.");
+        s_prismav2->RegisterConsoleCallback(
+            s_view, [](PrismaView, PRISMA_UI_API::ConsoleMessageLevel level, const char* message) {
+                const char* safeMsg = message ? message : "(null)";
+                switch (level) {
+                    // TODO - have config for INFO or remove after testing.
+                    case PRISMA_UI_API::ConsoleMessageLevel::Log: //INFO
+                    case PRISMA_UI_API::ConsoleMessageLevel::Info: //INFO
+                        SKSE::log::info("[JS] {}", safeMsg);
+                        break;
+                    case PRISMA_UI_API::ConsoleMessageLevel::Warning:
+                        SKSE::log::warn("[JS] {}", safeMsg);
+                        break;
+                    case PRISMA_UI_API::ConsoleMessageLevel::Error:
+                        SKSE::log::error("[JS] {}", safeMsg);
+                        break;
+                    case PRISMA_UI_API::ConsoleMessageLevel::Debug: //DEBUG
+                    default: //DEBUG
+                        SKSE::log::debug("[JS] {}", safeMsg);
+                        break;
+                }
+            });
+    }
 }
 
 bool PrismaUIBridge::IsAvailable() noexcept {
@@ -203,7 +223,7 @@ RE::Actor* PrismaUIBridge::GetInteractTarget() noexcept {
     if (!t || t == player)
         t = FindNearestLivingActor(kInteractRadius); // fallback: nearest in range
     if (t == player) t = nullptr;
-    SKSE::log::info("[SNBakaUI] GetInteractTarget -> {} (0x{:08X})",
+    SKSE::log::info("GetInteractTarget -> {} (0x{:08X})",
         t ? t->GetDisplayFullName() : "(none)", t ? t->GetFormID() : 0);
     return t;
 }
@@ -211,10 +231,10 @@ RE::Actor* PrismaUIBridge::GetInteractTarget() noexcept {
 void PrismaUIBridge::ShowInteractMenu(RE::Actor* caster, RE::Actor* target) noexcept {
     if (!IsAvailable()) {
         // View was invalidated (PrismaUI reset after save load) — try to recreate.
-        SKSE::log::warn("[SNBakaUI] ShowInteractMenu: view invalid, attempting recovery.");
+        SKSE::log::warn("ShowInteractMenu: view invalid, attempting recovery.");
         CreateMenuView();
         if (!IsAvailable()) {
-            SKSE::log::error("[SNBakaUI] ShowInteractMenu: recovery failed, aborting.");
+            SKSE::log::error("ShowInteractMenu: recovery failed, aborting.");
             return;
         }
     }
@@ -225,7 +245,7 @@ void PrismaUIBridge::ShowInteractMenu(RE::Actor* caster, RE::Actor* target) noex
     // Sex check FIRST — works regardless of crosshair/target, so it's reliable
     // even though the spell is self-delivered (akTarget == player).
     if (IsPlayerInSexAnimation()) {
-        SKSE::log::info("[SNBakaUI] ShowInteractMenu: in sex animation -> spank menu.");
+        SKSE::log::info("ShowInteractMenu: in sex animation -> spank menu.");
         ShowSexSpankMenu("{\"names\":[],\"playerInScene\":true}");
         return;
     }
@@ -239,13 +259,13 @@ void PrismaUIBridge::ShowInteractMenu(RE::Actor* caster, RE::Actor* target) noex
         if (resolved && resolved != player) {
             target = resolved;
         } else {
-            SKSE::log::warn("[SNBakaUI] ShowInteractMenu: no target in crosshair/range — nothing to interact with.");
+            SKSE::log::warn("ShowInteractMenu: no target in crosshair/range — nothing to interact with.");
             return;
         }
     }
 
     if (!caster || !target) {
-        SKSE::log::error("[SNBakaUI] ShowInteractMenu: null caster or target after resolve.");
+        SKSE::log::error("ShowInteractMenu: null caster or target after resolve.");
         return;
     }
 
@@ -253,7 +273,7 @@ void PrismaUIBridge::ShowInteractMenu(RE::Actor* caster, RE::Actor* target) noex
     // regardless of what happens to Papyrus _pending* while the menu is open.
     s_interactCaster = caster->GetFormID();
     s_interactTarget = target->GetFormID();
-    SKSE::log::info("[SNBakaUI] ShowInteractMenu: caster='{}' (0x{:08X})  target='{}' (0x{:08X})",
+    SKSE::log::info("ShowInteractMenu: caster='{}' (0x{:08X})  target='{}' (0x{:08X})",
         caster->GetDisplayFullName(), s_interactCaster,
         target->GetDisplayFullName(), s_interactTarget);
 
@@ -273,18 +293,18 @@ void PrismaUIBridge::ShowEncounterMenu(RE::Actor* aggressor, RE::Actor* victim) 
     if (!IsAvailable()) {
         CreateMenuView();
         if (!IsAvailable()) {
-            SKSE::log::error("[SNBakaUI] ShowEncounterMenu: view unavailable.");
+            SKSE::log::error("ShowEncounterMenu: view unavailable.");
             return;
         }
     }
     if (!aggressor || !victim) {
-        SKSE::log::error("[SNBakaUI] ShowEncounterMenu: null aggressor/victim.");
+        SKSE::log::error("ShowEncounterMenu: null aggressor/victim.");
         return;
     }
 
     s_encAggressor = aggressor->GetFormID();
     s_encVictim    = victim->GetFormID();
-    SKSE::log::info("[SNBakaUI] ShowEncounterMenu: aggressor='{}' (0x{:08X}) victim='{}' (0x{:08X})",
+    SKSE::log::info("ShowEncounterMenu: aggressor='{}' (0x{:08X}) victim='{}' (0x{:08X})",
         aggressor->GetDisplayFullName(), s_encAggressor,
         victim->GetDisplayFullName(), s_encVictim);
 
@@ -308,12 +328,12 @@ void PrismaUIBridge::ShowSexSpankMenu(const std::string& json) noexcept {
     if (!IsAvailable()) {
         CreateMenuView();
         if (!IsAvailable()) {
-            SKSE::log::error("[SNBakaUI] ShowSexSpankMenu: view unavailable.");
+            SKSE::log::error("ShowSexSpankMenu: view unavailable.");
             return;
         }
     }
 
-    SKSE::log::info("[SNBakaUI] ShowSexSpankMenu: papyrus json='{}'", json);
+    SKSE::log::info("ShowSexSpankMenu: papyrus json='{}'", json);
 
     // Reset C++ actor state for this menu open.
     s_usingCppSexActors = false;
@@ -323,7 +343,7 @@ void PrismaUIBridge::ShowSexSpankMenu(const std::string& json) noexcept {
     // Detect whether Papyrus found any NPCs: names array is non-empty if it
     // contains at least one quoted name, i.e. `"names":["`.
     const bool papyrusHasActors = json.find("\"names\":[\"") != std::string::npos;
-    SKSE::log::info("[SNBakaUI] ShowSexSpankMenu: papyrusHasActors={}", papyrusHasActors);
+    SKSE::log::info("ShowSexSpankMenu: papyrusHasActors={}", papyrusHasActors);
 
     std::string effectiveJson = json;
 
@@ -331,7 +351,7 @@ void PrismaUIBridge::ShowSexSpankMenu(const std::string& json) noexcept {
         // Papyrus-side detection (faction-based) found no actors.  Fall back to
         // a proximity scan — during a sex animation participants are always within
         // a few metres of the player.
-        SKSE::log::info("[SNBakaUI] ShowSexSpankMenu: no Papyrus actors — proximity scan (r={})", kSexScanRadius);
+        SKSE::log::info("ShowSexSpankMenu: no Papyrus actors — proximity scan (r={})", kSexScanRadius);
 
         auto* player = RE::PlayerCharacter::GetSingleton();
         auto* cell   = player ? player->GetParentCell() : nullptr;
@@ -339,14 +359,14 @@ void PrismaUIBridge::ShowSexSpankMenu(const std::string& json) noexcept {
         if (player && cell) {
             const auto origin = player->GetPosition();
             cell->ForEachReferenceInRange(origin, kSexScanRadius,
-                [&](RE::TESObjectREFR& refr) -> RE::BSContainer::ForEachResult {
+                [&](RE::TESObjectREFR* refr) -> RE::BSContainer::ForEachResult {
                     if (s_sexActorCount >= 3)
                         return RE::BSContainer::ForEachResult::kStop;
-                    auto* actor = skyrim_cast<RE::Actor*>(&refr);
+                    auto* actor = skyrim_cast<RE::Actor*>(refr);
                     if (!actor || actor->IsPlayerRef() || actor->IsDead())
                         return RE::BSContainer::ForEachResult::kContinue;
                     s_sexActorIds[s_sexActorCount] = actor->GetFormID();
-                    SKSE::log::info("[SNBakaUI]   scanned[{}] = '{}' (0x{:08X})",
+                    SKSE::log::info("  scanned[{}] = '{}' (0x{:08X})",
                         s_sexActorCount,
                         actor->GetDisplayFullName(),
                         actor->GetFormID());
@@ -371,9 +391,9 @@ void PrismaUIBridge::ShowSexSpankMenu(const std::string& json) noexcept {
             effectiveJson = std::format(
                 "{{\"names\":[{}],\"playerInScene\":{}}}",
                 names, playerInScene ? "true" : "false");
-            SKSE::log::info("[SNBakaUI] ShowSexSpankMenu: rebuilt json='{}'", effectiveJson);
+            SKSE::log::info("ShowSexSpankMenu: rebuilt json='{}'", effectiveJson);
         } else {
-            SKSE::log::warn("[SNBakaUI] ShowSexSpankMenu: no actors within {}u — menu will be empty", kSexScanRadius);
+            SKSE::log::warn("ShowSexSpankMenu: no actors within {}u — menu will be empty", kSexScanRadius);
         }
     }
 
@@ -389,7 +409,7 @@ void PrismaUIBridge::ShowSexSpankMenu(const std::string& json) noexcept {
 void PrismaUIBridge::OnJSChoice(const char* value) noexcept {
     if (!s_prisma) return;
 
-    SKSE::log::info("[SNBakaUI] OnJSChoice: value='{}'", value ? value : "(null)");
+    SKSE::log::info("OnJSChoice: value='{}'", value ? value : "(null)");
 
     s_prisma->Unfocus(s_view);
     s_prisma->Hide(s_view);
@@ -409,27 +429,27 @@ void PrismaUIBridge::OnJSChoice(const char* value) noexcept {
     const RE::FormID                eVic    = s_encVictim;
     const std::string               spec    = value ? value : "";   // encounter: "role;intensity;flavor;type" or "cancel"
 
-    SKSE::log::info("[SNBakaUI] OnJSChoice: mode={} choice={} useCpp={} spec='{}'",
+    SKSE::log::info("OnJSChoice: mode={} choice={} useCpp={} spec='{}'",
         strArg, choice, useCpp, spec);
 
     SKSE::GetTaskInterface()->AddTask([numArg, strArg, mode, choice, useCpp, actIds, actCnt, iCaster, iTarget, eAgg, eVic, spec]() {
         auto* vm      = RE::BSScript::Internal::VirtualMachine::GetSingleton();
         auto* handler = RE::TESDataHandler::GetSingleton();
         if (!vm || !handler) {
-            SKSE::log::error("[SNBakaUI] Task: VM or DataHandler unavailable.");
+            SKSE::log::error("Task: VM or DataHandler unavailable.");
             return;
         }
 
         auto* quest = handler->LookupForm<RE::TESQuest>(0x000D62, "SkyrimNet_BakaIntegration.esp");
         if (!quest) {
-            SKSE::log::error("[SNBakaUI] Task: BakaIntegration quest not found.");
+            SKSE::log::error("Task: BakaIntegration quest not found.");
             return;
         }
 
         auto* policy = vm->GetObjectHandlePolicy();
         RE::VMHandle handle = policy->GetHandleForObject(RE::FormType::Quest, quest);
         if (handle == policy->EmptyHandle()) {
-            SKSE::log::error("[SNBakaUI] Task: VMHandle invalid.");
+            SKSE::log::error("Task: VMHandle invalid.");
             return;
         }
 
@@ -441,12 +461,12 @@ void PrismaUIBridge::OnJSChoice(const char* value) noexcept {
         if (mode == MenuMode::Encounter) {
             auto* agg = RE::TESForm::LookupByID<RE::Actor>(eAgg);
             auto* vic = RE::TESForm::LookupByID<RE::Actor>(eVic);
-            SKSE::log::info("[SNBakaUI] Task: encounter spec='{}' aggressor='{}' victim='{}'",
+            SKSE::log::info("Task: encounter spec='{}' aggressor='{}' victim='{}'",
                 spec,
                 agg ? agg->GetDisplayFullName() : "(null)",
                 vic ? vic->GetDisplayFullName() : "(null)");
             if (!agg || !vic) {
-                SKSE::log::error("[SNBakaUI] Task: encounter — actor lookup failed.");
+                SKSE::log::error("Task: encounter — actor lookup failed.");
                 return;
             }
             // Default role "cancel" so an empty/short spec is treated as a cancel.
@@ -475,7 +495,7 @@ void PrismaUIBridge::OnJSChoice(const char* value) noexcept {
                 RE::BSFixedString("_StartSexLabScene"),
                 args, cb);
             delete args;
-            SKSE::log::info("[SNBakaUI] Task: _StartSexLabScene dispatched (role='{}').", parts[0]);
+            SKSE::log::info("Task: _StartSexLabScene dispatched (role='{}').", parts[0]);
             return;
         }
 
@@ -484,16 +504,16 @@ void PrismaUIBridge::OnJSChoice(const char* value) noexcept {
         // (unpaused) menu can't leave us with stale/clobbered actors.
         if (mode == MenuMode::Interact) {
             if (choice < 0) {
-                SKSE::log::info("[SNBakaUI] Task: interact cancelled.");
+                SKSE::log::info("Task: interact cancelled.");
                 return;
             }
             auto* cst = RE::TESForm::LookupByID<RE::Actor>(iCaster);
             auto* tgt = RE::TESForm::LookupByID<RE::Actor>(iTarget);
-            SKSE::log::info("[SNBakaUI] Task: interact dispatch — caster='{}' (0x{:08X}) target='{}' (0x{:08X}) choice={}",
+            SKSE::log::info("Task: interact dispatch — caster='{}' (0x{:08X}) target='{}' (0x{:08X}) choice={}",
                 cst ? cst->GetDisplayFullName() : "(null)", iCaster,
                 tgt ? tgt->GetDisplayFullName() : "(null)", iTarget, choice);
             if (!cst || !tgt) {
-                SKSE::log::error("[SNBakaUI] Task: interact — actor lookup failed.");
+                SKSE::log::error("Task: interact — actor lookup failed.");
                 return;
             }
             auto* args = RE::MakeFunctionArguments(
@@ -506,14 +526,14 @@ void PrismaUIBridge::OnJSChoice(const char* value) noexcept {
                 RE::BSFixedString("_DispatchInteractActionWithActors"),
                 args, cb);
             delete args;
-            SKSE::log::info("[SNBakaUI] Task: _DispatchInteractActionWithActors dispatched.");
+            SKSE::log::info("Task: _DispatchInteractActionWithActors dispatched.");
             return;
         }
 
         // ── SexSpank with C++ scanned actors ────────────────────────────────────
         if (mode == MenuMode::SexSpank && useCpp) {
             if (choice < 0) {
-                SKSE::log::info("[SNBakaUI] Task: SexSpank CPP — cancelled.");
+                SKSE::log::info("Task: SexSpank CPP — cancelled.");
                 return;
             }
 
@@ -536,12 +556,12 @@ void PrismaUIBridge::OnJSChoice(const char* value) noexcept {
                 spanker = spankee = player;
             }
 
-            SKSE::log::info("[SNBakaUI] Task: SexSpank CPP — spanker='{}' spankee='{}'",
+            SKSE::log::info("Task: SexSpank CPP — spanker='{}' spankee='{}'",
                 spanker ? spanker->GetDisplayFullName() : "(null)",
                 spankee ? spankee->GetDisplayFullName() : "(null)");
 
             if (!spanker || !spankee) {
-                SKSE::log::warn("[SNBakaUI] Task: SexSpank CPP — missing actor for choice {}", choice);
+                SKSE::log::warn("Task: SexSpank CPP — missing actor for choice {}", choice);
                 return;
             }
 
@@ -554,12 +574,12 @@ void PrismaUIBridge::OnJSChoice(const char* value) noexcept {
                 RE::BSFixedString("_SexSpank_Execute"),
                 args, cb);
             delete args;
-            SKSE::log::info("[SNBakaUI] Task: _SexSpank_Execute dispatched.");
+            SKSE::log::info("Task: _SexSpank_Execute dispatched.");
             return;
         }
 
         // ── Normal path: interact or SexSpank with Papyrus-detected actors ──────
-        SKSE::log::info("[SNBakaUI] Task: dispatching OnSNBakaMenuChoice — strArg='{}' numArg={}", strArg, numArg);
+        SKSE::log::info("Task: dispatching OnSNBakaMenuChoice — strArg='{}' numArg={}", strArg, numArg);
         auto* args = RE::MakeFunctionArguments(
             RE::BSFixedString(kModEventName),
             RE::BSFixedString(strArg),
@@ -567,6 +587,6 @@ void PrismaUIBridge::OnJSChoice(const char* value) noexcept {
             static_cast<RE::TESForm*>(nullptr));
         vm->SendEvent(handle, RE::BSFixedString("OnSNBakaMenuChoice"), args);
         delete args;
-        SKSE::log::info("[SNBakaUI] Task: SendEvent complete.");
+        SKSE::log::info("Task: SendEvent complete.");
     });
 }
