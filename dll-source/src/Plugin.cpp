@@ -39,15 +39,14 @@ bool SetupLog() {
     auto logsFolder = SKSE::log::log_directory();
     if (!logsFolder) return false;
 
-    auto pluginName = SKSE::PluginDeclaration::GetSingleton()->GetName();
+    auto pluginName = static_cast<std::string>(SKSE::PluginDeclaration::GetSingleton()->GetName());
     auto logPath = *logsFolder / std::format("{}.log", pluginName);
     std::shared_ptr<spdlog::logger> logger;
     try {
       auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(logPath.string(), true);
-      logger = std::make_shared<spdlog::logger>(static_cast<std::string>(pluginName), std::move(sink));
+      logger = std::make_shared<spdlog::logger>(pluginName, std::move(sink));
     } catch (const std::exception& e) {
-      SKSE::stl::report_and_fail(std::format("{} Failed to open log file '{}': {}",
-                                           static_cast<std::string>(pluginName), logPath.string(), e.what()));
+      SKSE::stl::report_and_fail(std::format("{} Failed to open log file '{}': {}", pluginName, logPath.string(), e.what()));
       return false;
     }
     logger->set_pattern("[%Y-%m-%d %T.%e] [%l] [%s:%#] %v");

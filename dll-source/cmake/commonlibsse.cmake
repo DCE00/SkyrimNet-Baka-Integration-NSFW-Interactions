@@ -18,8 +18,6 @@ set(CMAKE_MESSAGE_LOG_LEVEL INFO)
 
 # Always build CommonLibSSE in Release mode to disable assertions and enable optimizations
 set(CMAKE_BUILD_TYPE "Release")
-add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
-add_compile_definitions(NDEBUG)
 
 # Disable CommonLibSSE tests when building as subdirectory
 set(BUILD_TESTS OFF CACHE BOOL "Disable CommonLibSSE tests" FORCE)
@@ -29,6 +27,8 @@ add_subdirectory("${CommonLibPath}" "${BUILD_ROOT}/external_builds/${CommonLibNa
 
 # Include the CommonLibSSE helper cmake functions (provides add_commonlibsse_plugin macro)
 include("${CommonLibPath}/cmake/CommonLibSSE.cmake")
+
+target_compile_definitions(CommonLibSSE PRIVATE NDEBUG)
 
 # Restore original build type for the main project
 set(CMAKE_BUILD_TYPE "${_saved_build_type}" CACHE STRING "" FORCE)

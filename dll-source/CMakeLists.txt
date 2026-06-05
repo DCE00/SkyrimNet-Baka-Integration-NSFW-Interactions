@@ -7,7 +7,7 @@ endif()
 
 project(
     SkyrimNet_BakaIntegration
-    VERSION 1.4.1
+    VERSION 1.5.1
     LANGUAGES CXX
 )
 
@@ -26,9 +26,6 @@ set(FETCHCONTENT_BASE_DIR "${BUILD_ROOT}/external_builds")
 include(CompilerFlags)
 include(commonlibsse)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
-include_directories(${CMAKE_SOURCE_DIR}/src)
-
 add_commonlibsse_plugin(${PROJECT_NAME}
     SOURCES
     src/Plugin.cpp
@@ -41,6 +38,9 @@ add_commonlibsse_plugin(${PROJECT_NAME}
     USE_ADDRESS_LIBRARY
     MINIMUM_SKSE_VERSION "2.0.1.04"
 )
+
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/src)
 
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_23)
 target_precompile_headers(${PROJECT_NAME} PRIVATE src/PCH.h)
