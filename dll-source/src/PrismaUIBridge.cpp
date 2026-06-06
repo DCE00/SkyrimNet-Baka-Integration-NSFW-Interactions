@@ -30,11 +30,15 @@ static bool IsPlayerInSexAnimation() noexcept {
 static RE::Actor* GetCrosshairActor() noexcept {
     auto* pick = RE::CrosshairPickData::GetSingleton();
     if (!pick) return nullptr;
-    if (auto ref = pick->targetActor[0].get()) {
+    // VR fills a per-device target array — read the HEADSET slot. Flatscreen uses index 0.
+    // (In VR, target[0] is empty, which is why the interact power "did nothing" there.)
+    const std::size_t idx = REL::Module::IsVR()
+        ? static_cast<std::size_t>(RE::VR_DEVICE::kHeadset) : 0;
+    if (auto ref = pick->targetActor[idx].get()) {
         if (auto* a = skyrim_cast<RE::Actor*>(ref.get()))
             return a;
     }
-    if (auto ref = pick->target[0].get()) {
+    if (auto ref = pick->target[idx].get()) {
         if (auto* a = skyrim_cast<RE::Actor*>(ref.get()))
             return a;
     }

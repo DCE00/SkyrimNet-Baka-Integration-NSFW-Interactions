@@ -15,6 +15,7 @@ Scripts/Source/*.psc
 # ───────────── Build tools / artifacts (NOT shipped) ─────────────
 compile.bat
 *.pdb
+*.log
 
 # ───────────── Local backups ─────────────
 *.zip

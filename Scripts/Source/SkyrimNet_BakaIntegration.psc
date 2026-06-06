@@ -21,18 +21,52 @@ Float Property fNPCCooldown          = 20.0  Auto  ; per-NPC cooldown after NPC-
 Float Property fNPCGlobalCooldown    = 60.0  Auto
 ; Maximum distance (Skyrim units) between initiator and target for an animation to start.
 ; ~150 = conversation range, ~300 = same small room, ~600 = large hall.
-; Default 300 — prevents cross-room initiations without blocking normal approach range.
-Float Property fMaxInteractionDistance = 300.0 Auto
+; This value applies when the PLAYER is involved (crosshair-range targeting).
+Float Property fMaxInteractionDistance = 500.0 Auto
+; NPC-vs-NPC reach. Much larger than the player gate: two NPCs can drift apart between the LLM
+; deciding to act and the action actually firing, so a tight gate makes ~half of them fail.
+Float Property fNPCInteractionDistance = 1000.0 Auto
 ; When False, only the player can trigger Escalate. True (default) allows NPCs to chain
 ; a defeat into escalation. The 60s global cooldown (fNPCGlobalCooldown) is the primary
 ; spam guard — set this False only if you want to disable NPC escalation entirely.
 Bool  Property bNPCCanEscalate       = True  Auto
 
+; ============================================================================
+;  POSITIONING TUNING — every paired-animation spacing offset, in ONE place.
+;  Edit here (or on the controller script in the CK) to retune spacing without
+;  hunting through the code. Units are Skyrim units in the PARTNER's local frame:
+;  +Y = in front of the partner, -Y = behind; larger magnitude = farther apart.
+;  Each scene keeps separate values for NPC-NPC vs the player-involved roles, so
+;  changing one case never disturbs the others.
+; ============================================================================
+; Struggle (PlayPairedSequence) — gap with the victim standing ahead of the aggressor.
+Float Property fStruggleSep_NPC   = 5.0   Auto  ; NPC aggressor + NPC victim
+Float Property fStruggleSep_PCAtk = 3.0   Auto  ; player is the aggressor
+Float Property fStruggleSep_PCVic = 10.0  Auto  ; player is the victim  (7 -> 10: "too close")
+; Back-hug molest (PlayPairedLoopAnim) — how far BEHIND (negative) the attacker stands.
+Float Property fBackHugSep_NPC    = -55.0 Auto  ; NPC vs NPC
+Float Property fBackHugSep_PC     = -50.0 Auto  ; player involved (now -50)
+; Choke escalation (_DoEscalation MoveTo) — attacker's gap in front of the victim.
+Float Property fEscalDist_NPC     = 5.0   Auto  ; NPC victim
+Float Property fEscalDist_PCVic   = 4.0   Auto  ; player victim (A1 placed 4 units in front)
+; Choke-hug / back choke (PlayPairedSequence) — attacker stands BEHIND the victim. The anim
+; self-seats the pair ~15 apart, so NPC-NPC needs no offset; more-negative = further behind.
+Float Property fChokeHugSep_NPC   = 0.0   Auto  ; NPC vs NPC (anim spacing is already fine)
+Float Property fChokeHugSep_PCVic = -15.0 Auto  ; player victim — push the attacker further back
+
 ; === Resist minigame (powered by Flash Games - Struggling QTE) ===
 Bool  Property bResistEnabled    = True Auto
 ; Escape difficulty 0–100. Higher = easier for victim to escape. Default 70.
 ; Keys are configured in AEL's own Settings.json (WASD / gamepad d-pad by default).
+; NOTE: this is the PLAYER's QTE difficulty only. NPC-vs-NPC fights auto-resolve with
+; fNPCEscapeChance below (kept separate so tuning one never changes the other).
 Float Property fResistDifficulty    = 70.0 Auto
+; NPC-vs-NPC struggle: the victim's % chance to break free (no QTE — it's auto-rolled).
+; Lower = the attacker wins more often (which leads into the overpower/escalation content).
+Float Property fNPCEscapeChance     = 35.0 Auto
+; NPC-vs-NPC forced anims: how long each stage is held before advancing. The fight plays its
+; shared middle stages at this rate, then the deciding stage (attacker-victor or break-free).
+Float Property fNPCStageTime        = 5.0 Auto
 ; Seconds of animation to play before the QTE overlay appears. Lets the start
 ; animation finish and the actors settle before the minigame is shown.
 Float Property fQTEStartDelay       = 4.0  Auto
@@ -267,8 +301,13 @@ Bool Function IsEligible(Actor akA1, Actor akA2)
     If akA1.IsDead() || akA2.IsDead()
         Return False
     EndIf
-    If fMaxInteractionDistance > 0.0 && akA1.GetDistance(akA2) > fMaxInteractionDistance
-        Debug.Trace("[SNBaka] IsEligible: blocked — distance " + akA1.GetDistance(akA2) + " > " + fMaxInteractionDistance)
+    ; Player-involved uses the crosshair-range gate; NPC-vs-NPC gets the larger reach.
+    Float maxDist = fMaxInteractionDistance
+    If akA1 != PlayerRef && akA2 != PlayerRef
+        maxDist = fNPCInteractionDistance
+    EndIf
+    If maxDist > 0.0 && akA1.GetDistance(akA2) > maxDist
+        Debug.Trace("[SNBaka] IsEligible: blocked — distance " + akA1.GetDistance(akA2) + " > " + maxDist)
         Return False
     EndIf
     If akA1.IsInCombat()
@@ -1607,37 +1646,53 @@ Function PlayPairedSequence(Actor akA1, Actor akA2, \
             _WaitOrAbort(akA1, akA2, 3.5)
         EndIf
     Else
-        ; Normal sequence — NPC-NPC (no QTE). For a RESISTABLE struggle the final stage is the
-        ; victim breaking free, so it must only play if the victim actually escapes. Resolve a
-        ; random outcome (fResistDifficulty = victim's escape chance %): if the attacker wins we
-        ; stop ONE stage short (victim stays pinned) and flag defeat so Struggle_Execute runs the
-        ; ground/escalation window; if the victim escapes we play through the break-free stage.
-        Bool npcEscaped = bResistable && (Utility.RandomFloat(0.0, 99.9) < fResistDifficulty)
-        If npcEscaped && animsA1.Length > 1
-            ; Victim wins: jump STRAIGHT to the final break-free stage and let it play ~3.5s.
-            Int li = animsA1.Length - 1
-            Debug.SendAnimationEvent(akA1, animsA1[li])
-            Debug.SendAnimationEvent(akA2, animsA2[li])
-            _WaitOrAbort(akA1, akA2, 3.5)
-            _bAELVictimEscaped = True
-            SkyrimNetApi.RegisterEvent("baka_resist_success", \
-                akA2.GetDisplayName() + " breaks free from " + akA1.GetDisplayName() + ".", \
-                akA1, akA2)
-        Else
-            ; Attacker wins (or non-resistable): play stages, stopping before the break-free.
-            Int playCount = animsA1.Length
-            If bResistable && playCount > 1
-                playCount -= 1
-            EndIf
+        ; Normal sequence — NPC-NPC (no QTE).
+        If !bResistable
+            ; Non-resistable paired sequence: just play every stage straight through.
             Int i = 0
-            While i < playCount && !_ShouldAbort(akA1, akA2)
+            While i < animsA1.Length && !_ShouldAbort(akA1, akA2)
                 Debug.SendAnimationEvent(akA1, animsA1[i])
                 Debug.SendAnimationEvent(akA2, animsA2[i])
                 _WaitOrAbort(akA1, akA2, stageTimer)
                 i += 1
             EndWhile
-            If bResistable && !_ShouldAbort(akA1, akA2)
-                _bQTEDefeated = True   ; attacker overpowers -> DefeatGroundWindow / escalation
+        Else
+            ; FORCED anim rule (Struggle, ChokeHug, any resistable staged anim). The clip has
+            ; several stages: the LAST is the victim breaking free, the LAST-MINUS-ONE is the
+            ; attacker's victory pose. Play the shared middle stages (everything before the
+            ; deciding stage) at fNPCStageTime each, then show the deciding stage:
+            ;   attacker win -> last-minus-one (victor),   victim win -> last (break-free).
+            Bool npcEscaped = (Utility.RandomFloat(0.0, 99.9) < fNPCEscapeChance)
+            Int lastIdx = animsA1.Length - 1
+            Int penult  = lastIdx - 1
+            If penult < 0
+                penult = 0
+            EndIf
+            ; Shared middle stages 0 .. penult-1 (stop before the deciding stage).
+            Int i = 0
+            While i < penult && !_ShouldAbort(akA1, akA2)
+                Debug.SendAnimationEvent(akA1, animsA1[i])
+                Debug.SendAnimationEvent(akA2, animsA2[i])
+                _WaitOrAbort(akA1, akA2, fNPCStageTime)
+                i += 1
+            EndWhile
+            If !_ShouldAbort(akA1, akA2)
+                If npcEscaped && animsA1.Length > 1
+                    ; Victim wins: skip the victor stage, play the break-free LAST stage directly.
+                    Debug.SendAnimationEvent(akA1, animsA1[lastIdx])
+                    Debug.SendAnimationEvent(akA2, animsA2[lastIdx])
+                    _WaitOrAbort(akA1, akA2, fNPCStageTime)
+                    _bAELVictimEscaped = True
+                    SkyrimNetApi.RegisterEvent("baka_resist_success", \
+                        akA2.GetDisplayName() + " breaks free from " + akA1.GetDisplayName() + ".", \
+                        akA1, akA2)
+                Else
+                    ; Attacker wins: play the LAST-MINUS-ONE (victor) stage, then flag defeat.
+                    Debug.SendAnimationEvent(akA1, animsA1[penult])
+                    Debug.SendAnimationEvent(akA2, animsA2[penult])
+                    _WaitOrAbort(akA1, akA2, fNPCStageTime)
+                    _bQTEDefeated = True   ; -> DefeatGroundWindow / escalation
+                EndIf
             EndIf
         EndIf
     EndIf
@@ -2013,8 +2068,14 @@ Function _DoEscalation(Actor akA1, Actor akA2)
     ; A1 starts ~5 units in front of A2 (very close — 14 read too far apart).  z-offset 0
     ; places A1 at A2's EXACT Z so they're at the same height on stairs/slopes.
     Float angZ = akA2.GetAngleZ()
-    Float offX = 5.0 * Math.Sin(angZ)
-    Float offY = 5.0 * Math.Cos(angZ)
+    ; A1 ~5 units in front of A2 (NPC victim). The player victim read too far at 5, so bring the
+    ; attacker 5 units closer (co-located) when the player is the one being escalated on.
+    Float dist = fEscalDist_NPC            ; see POSITIONING TUNING block at top
+    If akA2 == PlayerRef
+        dist = fEscalDist_PCVic
+    EndIf
+    Float offX = dist * Math.Sin(angZ)
+    Float offY = dist * Math.Cos(angZ)
 
     akA1.MoveTo(akA2, offX, offY, 0.0, False)
     Utility.Wait(0.1)
@@ -2295,9 +2356,9 @@ Function BackHugMolest_Execute(Actor akInitiator, Actor akTarget)
 
     ; xLocal 4 nudges the attacker laterally; yLocal -55 (behind) is tuned for NPC-NPC. NPC-PC
     ; reads too close, so push the attacker ~8 further back whenever the player is involved.
-    Float yMolest = -55.0
+    Float yMolest = fBackHugSep_NPC        ; see POSITIONING TUNING block at top
     If akInitiator == PlayerRef || akTarget == PlayerRef
-        yMolest = -63.0
+        yMolest = fBackHugSep_PC
     EndIf
     PlayPairedLoopAnim(akInitiator, akTarget, \
         4.0, yMolest, 0.0, \
@@ -2877,9 +2938,11 @@ Function Struggle_Execute(Actor akInitiator, Actor akTarget)
     ; NPC-NPC looks right at yLocal 5 (victim ~5 behind the attacker). PC-NPC reads as slightly
     ; off — the victim needs to sit ~2 units farther ahead, so use a smaller behind-offset (3)
     ; whenever the player is involved. (If it ends up too close, bump this back toward 5/7.)
-    Float yOff = 5.0
-    If akInitiator == PlayerRef || akTarget == PlayerRef
-        yOff = 3.0
+    Float yOff = fStruggleSep_NPC          ; see POSITIONING TUNING block at top
+    If akInitiator == PlayerRef            ; player is the attacker
+        yOff = fStruggleSep_PCAtk
+    ElseIf akTarget == PlayerRef           ; player is the victim
+        yOff = fStruggleSep_PCVic
     EndIf
     PlayPairedSequence(akInitiator, akTarget, 0.0, yOff, 0.0, a1, a2, fSequenceStageTimer, True)
 
@@ -2938,11 +3001,15 @@ Function ChokeHug_Execute(Actor akInitiator, Actor akTarget)
     a2[3] = "Babo_ChokeHug_S04_A01"
     a2[4] = "Babo_ChokeHug_S05_A01"
 
-    ; ChokeHug action ONLY (not the escalate-defeat choke in _DoEscalation).  The choke anim already
-    ; seats the pair ~15 apart, so any extra back-offset just widens the gap — zero it out for body-to-body.
-    ; xLocal=0 (no lateral shift — that put the attacker off to the side); the choke anim seats
-    ; the attacker directly behind the victim on its own. Bump yLocal negative here if too close.
-    PlayPairedSequence(akInitiator, akTarget, 0.0, 0.0, 0.0, a1, a2, fSequenceStageTimer, True)
+    ; ChokeHug action ONLY (not the escalate-defeat choke in _DoEscalation). xLocal=0 (no lateral
+    ; shift — that put the attacker off to the side); the choke anim seats the attacker directly
+    ; behind the victim. NPC-NPC self-seats ~15 apart (offset 0); when the player is the victim it
+    ; reads too close, so push the attacker further back. See POSITIONING TUNING block at top.
+    Float yChoke = fChokeHugSep_NPC
+    If akTarget == PlayerRef
+        yChoke = fChokeHugSep_PCVic
+    EndIf
+    PlayPairedSequence(akInitiator, akTarget, 0.0, yChoke, 0.0, a1, a2, fSequenceStageTimer, True)
 
     If _bQTEDefeated
         Debug.Trace("[SNBaka] Execute: QTE defeated — calling DefeatGroundWindow. attacker=" + akInitiator.GetDisplayName() + " victim=" + akTarget.GetDisplayName())

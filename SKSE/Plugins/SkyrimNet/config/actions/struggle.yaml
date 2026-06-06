@@ -18,9 +18,11 @@ description: |
   - A soldier, guard, or enforcer trained in physical restraint
   - Determined — not deterred by initial resistance
 
+  This is a common, easy-to-reach physical action: any time one character lays hands on
+  another to overpower, pin, grab, restrain, drag, or manhandle them, USE THIS. You do not
+  need a weapon, a fight, or a special reason — a grab or a shove to subdue is enough.
+
   DO NOT USE:
-  - As a light or playful act — five stages of grappling is a real fight
-  - When the initiator is significantly weaker than the target in narrative terms
   - During active armed combat — this is hand-to-hand subduing, not swordplay
 
   CONSEQUENCES:
@@ -42,7 +44,7 @@ parameterMapping:
     description: The person being wrestled down — player or nearby NPC.
 
 enabled: true
-defaultPriority: 2
+defaultPriority: 5
 customCategory: SNBaka_Grab
 eligibilityRules:
   - conditions:
