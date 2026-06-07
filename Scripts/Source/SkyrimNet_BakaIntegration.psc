@@ -15,10 +15,10 @@ Float Property fKissLoopDuration     = 6.0   Auto
 Float Property fTouchLoopDuration    = 6.0   Auto
 Float Property fSequenceStageTimer   = 4.0   Auto
 Float Property fPlayerCooldown       = 0.5   Auto  ; cooldown after player-initiated actions
-Float Property fNPCCooldown          = 20.0  Auto  ; per-NPC cooldown after NPC-initiated actions
+Float Property fNPCCooldown          = 8.0   Auto  ; per-NPC cooldown after NPC-initiated actions (was 20)
 ; After any NPC-initiated action completes, all further NPC actions are blocked for this
 ; long. Prevents the AI from chaining multiple NPCs in rapid succession.
-Float Property fNPCGlobalCooldown    = 60.0  Auto
+Float Property fNPCGlobalCooldown    = 20.0  Auto  ; global anti-spam (was 60 — blocked interactions too much)
 ; Maximum distance (Skyrim units) between initiator and target for an animation to start.
 ; ~150 = conversation range, ~300 = same small room, ~600 = large hall.
 ; This value applies when the PLAYER is involved (crosshair-range targeting).
@@ -31,28 +31,60 @@ Float Property fNPCInteractionDistance = 1000.0 Auto
 ; spam guard — set this False only if you want to disable NPC escalation entirely.
 Bool  Property bNPCCanEscalate       = True  Auto
 
-; ============================================================================
-;  POSITIONING TUNING — every paired-animation spacing offset, in ONE place.
-;  Edit here (or on the controller script in the CK) to retune spacing without
-;  hunting through the code. Units are Skyrim units in the PARTNER's local frame:
-;  +Y = in front of the partner, -Y = behind; larger magnitude = farther apart.
-;  Each scene keeps separate values for NPC-NPC vs the player-involved roles, so
-;  changing one case never disturbs the others.
-; ============================================================================
+; ╔══════════════════════════════════════════════════════════════════════════╗
+; ║  POSITIONING TUNING — every paired-animation spacing offset is HERE.       ║
+; ║  Edit these to change how far apart the two actors stand in each scene.    ║
+; ║  (Also editable on the quest's script in the Creation Kit — no recompile.) ║
+; ╠══════════════════════════════════════════════════════════════════════════╣
+; ║  HOW TO READ A VALUE                                                       ║
+; ║    • Units  : Skyrim units (~1.4 cm each), measured along the victim's     ║
+; ║               facing direction.                                            ║
+; ║    • Sign   : +value = partner placed IN FRONT,  -value = placed BEHIND.   ║
+; ║    • Size   : bigger magnitude = farther apart;  0 = co-located (let the   ║
+; ║               animation position them — best for Babo paired anims).       ║
+; ╠══════════════════════════════════════════════════════════════════════════╣
+; ║  NAME SUFFIX = which actor is the player (separate so one never affects    ║
+; ║  another):                                                                 ║
+; ║    _NPC   = NPC on NPC            _PC    = player involved (either role)    ║
+; ║    _PCAtk = player is attacker    _PCVic = player is the victim            ║
+; ╠══════════════════════════════════════════════════════════════════════════╣
+; ║  WHICH ACTION EACH GROUP DRIVES                                            ║
+; ║    fStruggleSep_*  Struggle grapple   (victim stands ahead of attacker)    ║
+; ║    fBackHugSep_*   Back-hug molest    (attacker stands behind victim)      ║
+; ║    fEscalDist_*    Choke escalation   (attacker over the downed victim)    ║
+; ║    fFondleSep_*    Fondle privates    (attacker behind, victim facing away)║
+; ║    fChokeHugSep_*  Back choke / hug   (attacker directly behind victim)    ║
+; ╚══════════════════════════════════════════════════════════════════════════╝
 ; Struggle (PlayPairedSequence) — gap with the victim standing ahead of the aggressor.
-Float Property fStruggleSep_NPC   = 5.0   Auto  ; NPC aggressor + NPC victim
+Float Property fStruggleSep_NPC   = 22.0  Auto  ; NPC aggressor + NPC victim (30 -> 22: a bit closer)
 Float Property fStruggleSep_PCAtk = 3.0   Auto  ; player is the aggressor
 Float Property fStruggleSep_PCVic = 10.0  Auto  ; player is the victim  (7 -> 10: "too close")
 ; Back-hug molest (PlayPairedLoopAnim) — how far BEHIND (negative) the attacker stands.
-Float Property fBackHugSep_NPC    = -55.0 Auto  ; NPC vs NPC
+Float Property fBackHugSep_NPC    = -50.0 Auto  ; NPC vs NPC (targets ~50 dist)
 Float Property fBackHugSep_PC     = -50.0 Auto  ; player involved (now -50)
 ; Choke escalation (_DoEscalation MoveTo) — attacker's gap in front of the victim.
-Float Property fEscalDist_NPC     = 5.0   Auto  ; NPC victim
+Float Property fEscalDist_NPC     = 0.0   Auto  ; NPC victim — co-located; the Babo defeat anim
+                                                ; spaces the pair itself (5 double-spaced -> too far)
 Float Property fEscalDist_PCVic   = 4.0   Auto  ; player victim (A1 placed 4 units in front)
-; Choke-hug / back choke (PlayPairedSequence) — attacker stands BEHIND the victim. The anim
-; self-seats the pair ~15 apart, so NPC-NPC needs no offset; more-negative = further behind.
-Float Property fChokeHugSep_NPC   = 0.0   Auto  ; NPC vs NPC (anim spacing is already fine)
+; Fondle privates (PlayPairedSimpleAnim) — attacker directly BEHIND the victim, same facing
+; (victim's back to the attacker). More-negative = further behind.
+Float Property fFondleSep_NPC     = -40.0 Auto  ; NPC vs NPC (was -20 — read weird/too close)
+Float Property fFondleSep_PC      = -20.0 Auto  ; player involved (unchanged)
+; Choke-hug / back choke (PlayPairedSequence) — attacker stands BEHIND the victim, one directly
+; behind the other (no lateral shift). More-negative = victim further ahead (avoids clipping).
+Float Property fChokeHugSep_NPC   = -8.0  Auto  ; NPC vs NPC (0 -> -8: victim was clipping in)
 Float Property fChokeHugSep_PCVic = -15.0 Auto  ; player victim — push the attacker further back
+; Forced kiss (PlayPairedLoopAnim, face-to-face) — 0 = the anim's own spacing; negative pulls the
+; pair closer (the SLAP kiss anim leaves a person-width gap).
+Float Property fForcedKissSep_NPC = 0.0   Auto  ; NPC vs NPC
+Float Property fForcedKissSep_PC  = -25.0 Auto  ; player involved — close the person-width gap
+; DEBUG: position tuning — on-screen offsets + final coords per scene. OFF by default now that
+; spacing is mostly dialed in; flip True (or tick in the CK) when you need to retune positions.
+Bool  Property bDebugPositions    = False Auto
+; DEBUG: action/power logging — a concise on-screen line + a detailed log line for each action
+; (interaction name, aggressor, target) and each interact-power press (target, or "no target on
+; crosshair"). Left ON so you can see what's firing; untick to silence.
+Bool  Property bDebugLog          = True  Auto
 
 ; === Resist minigame (powered by Flash Games - Struggling QTE) ===
 Bool  Property bResistEnabled    = True Auto
@@ -1172,6 +1204,7 @@ Function PlayPairedLoopAnim(Actor akA1, Actor akA2, \
     _HoldPinned(akA2)
 
     Debug.Trace("[SNBaka] LoopAnim: A1=" + akA1.GetDisplayName() + " A2=" + akA2.GetDisplayName() + " anim=" + startA1 + " resistable=" + bResistable + " a1IsPlayer=" + a1IsPlayer + " a2IsPlayer=" + a2IsPlayer)
+    _DebugPos(startA1, akA1, akA2, xLocal, yLocal)
     Debug.SendAnimationEvent(akA1, startA1)
     Debug.SendAnimationEvent(akA2, startA2)
     Bool aborted = _WaitOrAbort(akA1, akA2, startWait, 0.25)
@@ -1205,6 +1238,21 @@ Function PlayPairedLoopAnim(Actor akA1, Actor akA2, \
                 Utility.Wait(1.5)
             ElseIf !_bQTEDefeated && !_ShouldAbort(akA1, akA2)
                 _WaitOrAbort(akA1, akA2, loopDur * 0.4)
+            EndIf
+        ElseIf bResistable
+            ; NPC-vs-NPC resistable loop (e.g. BackHugMolest): play the loop out, THEN resolve like
+            ; the staged scenes — so it never just ends with no finish. Victim escapes -> break-free
+            ; anim; attacker wins -> flag defeat so the caller runs the ground/escalation window.
+            _bAELVictimEscaped = (Utility.RandomFloat(0.0, 99.9) < fNPCEscapeChance)
+            _WaitOrAbort(akA1, akA2, loopDur)
+            If !_ShouldAbort(akA1, akA2)
+                If _bAELVictimEscaped
+                    Debug.SendAnimationEvent(akA1, sStopA1)
+                    Debug.SendAnimationEvent(akA2, sStopA2)
+                    _WaitOrAbort(akA1, akA2, 1.5)
+                Else
+                    _bQTEDefeated = True   ; caller's If _bQTEDefeated -> DefeatGroundWindow
+                EndIf
             EndIf
         Else
             _WaitOrAbort(akA1, akA2, loopDur)
@@ -1349,6 +1397,7 @@ Function PlayPairedSimpleAnim(Actor akA1, Actor akA2, \
     _HoldPinned(akA2)
 
     Debug.Trace("[SNBaka] SimpleAnim: A1=" + akA1.GetDisplayName() + " A2=" + akA2.GetDisplayName() + " anim=" + animA1 + " resistable=" + bResistable + " a1IsPlayer=" + a1IsPlayer + " a2IsPlayer=" + a2IsPlayer)
+    _DebugPos(animA1, akA1, akA2, xLocal, yLocal)
     Debug.SendAnimationEvent(akA1, animA1)
     Debug.SendAnimationEvent(akA2, animA2)
 
@@ -1523,6 +1572,7 @@ Function PlayPairedSequence(Actor akA1, Actor akA2, \
     _HoldPinned(akA2)
 
     Debug.Trace("[SNBaka] Sequence: A1=" + akA1.GetDisplayName() + " A2=" + akA2.GetDisplayName() + " anim0=" + animsA1[0] + " resistable=" + bResistable + " a1IsPlayer=" + a1IsPlayer + " a2IsPlayer=" + a2IsPlayer)
+    _DebugPos(animsA1[0], akA1, akA2, xLocal, yLocal)
     If bResistable && bResistEnabled && (a1IsPlayer || a2IsPlayer)
         SkyrimNetApi.RegisterEvent("baka_resist_start", \
             akA2.GetDisplayName() + " struggles to break free from " + akA1.GetDisplayName() + ".", \
@@ -1971,8 +2021,8 @@ Function _DefeatGroundWindow(Actor akA1, Actor akA2)
         Debug.Trace("[SNBaka] _DefeatGroundWindow: window expired without escalation")
         StorageUtil.SetIntValue(akA2, "SNBaka.Locked",        0)
         StorageUtil.SetIntValue(akA2, "SNBaka.StopRequested", 0)
-        SkyrimNetApi.RegisterEvent("baka_interaction_end", \
-            akA2.GetDisplayName() + " recovers. The moment has passed.", \
+        _CueOutcome("baka_forced", \
+            akA2.GetDisplayName() + " was left defeated on the ground by " + akA1.GetDisplayName() + ", and slowly recovers.", \
             akA1, akA2)
         If akA1 == PlayerRef || akA2 == PlayerRef
             Game.EnablePlayerControls()
@@ -2081,9 +2131,10 @@ Function _DoEscalation(Actor akA1, Actor akA2)
     Utility.Wait(0.1)
     ; Snap A1 to A2's Z explicitly too, in case the navmesh nudged it off on a slope.
     akA1.SetPosition(akA1.GetPositionX(), akA1.GetPositionY(), akA2.GetPositionZ())
-    akA1.SetAngle(0.0, 0.0, angZ)
+    akA1.SetAngle(0.0, 0.0, angZ + 180.0)   ; attacker faces the victim (was parallel/same-facing)
     akA2.SetAngle(0.0, 0.0, angZ)
-    Debug.Trace("[SNBaka] _DoEscalation: A1 snapped to (" + akA1.GetPositionX() + "," + akA1.GetPositionY() + ") angle=" + angZ)
+    Debug.Trace("[SNBaka] _DoEscalation: A1 snapped to (" + akA1.GetPositionX() + "," + akA1.GetPositionY() + ") angle=" + (angZ + 180.0))
+    _DebugPos("Escalation (Babo_DefeatResist)", akA1, akA2, 0.0, dist)
 
     ; Roles: A1 (attacker) plays A2_S1 (crouching straddler), A2 (victim) plays A1_S1 (downed).
     Debug.SendAnimationEvent(akA1, "Babo_DefeatResist_A2_S1")
@@ -2308,6 +2359,71 @@ EndFunction
 ; bResistable = True on all panic actions.
 ; ============================================================
 
+; ╔══════════════════════════════════════════════════════════════════════════╗
+; ║  SCENE CUES TO SKYRIMNET — how every action tells the LLM what's going on. ║
+; ║  Two cues per scene so the LLM both REACTS live and REMEMBERS it:          ║
+; ║   _CueOngoing : a short-lived event that sits in the live SCENE CONTEXT    ║
+; ║      for the scene's length, so the victim + nearby NPCs can react WHILE   ║
+; ║      it happens. Phrase it present-tense, name who does what to whom, and   ║
+; ║      (for forced acts) say the victim is held/helpless so the reaction      ║
+; ║      lands. Keyed per-aggressor so it refreshes, not stacks.               ║
+; ║   _CueOutcome : ONE persistent event for memory/history, past-tense, with  ║
+; ║      the final result. Replaces the old deflating "X lets go" lines.       ║
+; ║  sType is the tag the Director keys reactions off:                         ║
+; ║   "baka_forced"  = non-consensual (fear/anger expected)                    ║
+; ║   "baka_intimate"= consensual (warm/playful expected)                      ║
+; ║  Always originator = aggressor, target = victim.                          ║
+; ╚══════════════════════════════════════════════════════════════════════════╝
+Function _CueOngoing(String sType, String sDesc, Actor akAtk, Actor akVic, Float afSeconds = 25.0)
+    If akAtk && akVic
+        SkyrimNetApi.RegisterShortLivedEvent("baka_scene_" + akAtk.GetFormID(), \
+            sType, sDesc, "", (afSeconds * 1000.0) as Int, akAtk, akVic)
+        If bDebugLog
+            ; RecordAnimation (called just before this) stored the formal interaction name on the aggressor.
+            String act = StorageUtil.GetStringValue(akAtk, "SNBaka.LastAnim", "?")
+            Debug.Notification("[Baka] " + act + ": " + akAtk.GetDisplayName() + " -> " + akVic.GetDisplayName())
+            Debug.Trace("[SNBaka][ACTION] interaction=" + act + " type=" + sType \
+                + " aggressor=" + akAtk.GetDisplayName() + " target=" + akVic.GetDisplayName() + " | " + sDesc)
+        EndIf
+    EndIf
+EndFunction
+
+Function _CueOutcome(String sType, String sSummary, Actor akAtk, Actor akVic)
+    If akAtk && akVic
+        SkyrimNetApi.RegisterEvent(sType, sSummary, akAtk, akVic)
+    EndIf
+EndFunction
+
+; Resolves a resistable scene to ONE short outcome line: who won. The attacker-win path runs the
+; defeat window (its own cue), so this is mostly the victim-escaped case. Third person, no detail —
+; the live cue already said what was happening; here we only state the result.
+Function _CueResistOutcome(String sType, Actor akAtk, Actor akVic)
+    If !akAtk || !akVic
+        Return
+    EndIf
+    String s
+    If _bAELVictimEscaped
+        s = akVic.GetDisplayName() + " broke free. It is over."
+    Else
+        s = akAtk.GetDisplayName() + " overpowered " + akVic.GetDisplayName() + ". It is over."
+    EndIf
+    _CueOutcome(sType, s, akAtk, akVic)
+EndFunction
+
+; Prints where a paired scene actually placed the actors (on-screen + log), so positioning can be
+; reported precisely. Gated by bDebugPositions. asAnim = the playing event; afX/afY = requested offsets.
+Function _DebugPos(String asAnim, Actor akA1, Actor akA2, Float afX, Float afY)
+    If !bDebugPositions || !akA1 || !akA2
+        Return
+    EndIf
+    Float dist = akA1.GetDistance(akA2)
+    Debug.Notification("[Baka] " + asAnim + "  off(x=" + afX + " y=" + afY + ")  dist=" + (dist as Int))
+    Debug.Trace("[SNBaka][POS] anim=" + asAnim + " offX=" + afX + " offY=" + afY \
+        + " | A1=" + akA1.GetDisplayName() + " (" + akA1.GetPositionX() + ", " + akA1.GetPositionY() + ", " + akA1.GetPositionZ() + ")" \
+        + " | A2=" + akA2.GetDisplayName() + " (" + akA2.GetPositionX() + ", " + akA2.GetPositionY() + ", " + akA2.GetPositionZ() + ")" \
+        + " | dist=" + dist)
+EndFunction
+
 ; --- BackHug ---
 ; Role anims: A1=BaboBackHugStartM/LoopM, A2=BaboBackHugStartF/LoopF
 ; Works on any gender combination.
@@ -2320,8 +2436,8 @@ Function BackHug_Execute(Actor akInitiator, Actor akTarget)
     EndIf
     RecordAnimation(akInitiator, "BackHug", akTarget.GetDisplayName())
     RecordAnimation(akTarget,    "BackHug", akInitiator.GetDisplayName())
-    SkyrimNetApi.RegisterEvent("baka_interaction_start", \
-        akInitiator.GetDisplayName() + " wraps their arms around " + akTarget.GetDisplayName() + " from behind.", \
+    _CueOngoing("baka_intimate", \
+        akInitiator.GetDisplayName() + " holds " + akTarget.GetDisplayName() + " from behind.", \
         akInitiator, akTarget)
 
     PlayPairedLoopAnim(akInitiator, akTarget, \
@@ -2330,8 +2446,8 @@ Function BackHug_Execute(Actor akInitiator, Actor akTarget)
         "BaboBackHugLoopM",     "BaboBackHugLoopF", \
         2.0, fHugLoopDuration)
 
-    SkyrimNetApi.RegisterEvent("baka_interaction_end", \
-        akInitiator.GetDisplayName() + " releases " + akTarget.GetDisplayName() + ".", \
+    _CueOutcome("baka_intimate", \
+        akInitiator.GetDisplayName() + " held " + akTarget.GetDisplayName() + " from behind.", \
         akInitiator, akTarget)
     UnlockBoth(akInitiator, akTarget)
 EndFunction
@@ -2348,8 +2464,8 @@ Function BackHugMolest_Execute(Actor akInitiator, Actor akTarget)
     EndIf
     RecordAnimation(akInitiator, "BackHugMolest", akTarget.GetDisplayName())
     RecordAnimation(akTarget,    "BackHugMolest", akInitiator.GetDisplayName())
-    SkyrimNetApi.RegisterEvent("baka_interaction_start", \
-        akInitiator.GetDisplayName() + " grabs " + akTarget.GetDisplayName() + " from behind.", \
+    _CueOngoing("baka_forced", \
+        akInitiator.GetDisplayName() + " gropes " + akTarget.GetDisplayName() + " from behind; " + akTarget.GetDisplayName() + " struggles.", \
         akInitiator, akTarget)
     PlayPanicSound(akTarget)
     _StartTears(akTarget)
@@ -2360,10 +2476,15 @@ Function BackHugMolest_Execute(Actor akInitiator, Actor akTarget)
     If akInitiator == PlayerRef || akTarget == PlayerRef
         yMolest = fBackHugSep_PC
     EndIf
+    ; NOTE: BaboBackHugMolest is authored as a FNIS *sequence* (s -a Start + cyclic Loop), not
+    ; basic anims like Struggle/ChokeHug. A FNIS sequence is triggered by the START event ONLY —
+    ; FNIS auto-chains to the looping continuation. Sending the Loop event ourselves yanked the
+    ; actor out of the running sequence (back to default) — which is why it failed every time.
+    ; So pass empty loop names: only Start fires, and the cyclic Loop plays on its own.
     PlayPairedLoopAnim(akInitiator, akTarget, \
         4.0, yMolest, 0.0, \
         "BaboBackHugMolestStartM",  "BaboBackHugMolestStartF", \
-        "BaboBackHugMolestLoopM",   "BaboBackHugMolestLoopF", \
+        "", "", \
         2.5, fMolestLoopDuration, True)
 
     ; Respect the QTE: only down the victim if they were actually defeated.  If they
@@ -2373,9 +2494,7 @@ Function BackHugMolest_Execute(Actor akInitiator, Actor akTarget)
         _UnlockAttackerOnly(akInitiator)
         _DefeatGroundWindow(akInitiator, akTarget)
     Else
-        SkyrimNetApi.RegisterEvent("baka_interaction_end", \
-            akInitiator.GetDisplayName() + " lets go of " + akTarget.GetDisplayName() + ".", \
-            akInitiator, akTarget)
+        _CueResistOutcome("baka_forced", akInitiator, akTarget)
         UnlockBoth(akInitiator, akTarget)
     EndIf
 EndFunction
@@ -2392,8 +2511,8 @@ Function FrontHug_Execute(Actor akInitiator, Actor akTarget)
     EndIf
     RecordAnimation(akInitiator, "FrontHug", akTarget.GetDisplayName())
     RecordAnimation(akTarget,    "FrontHug", akInitiator.GetDisplayName())
-    SkyrimNetApi.RegisterEvent("baka_interaction_start", \
-        akInitiator.GetDisplayName() + " pulls " + akTarget.GetDisplayName() + " into an embrace.", \
+    _CueOngoing("baka_intimate", \
+        akInitiator.GetDisplayName() + " embraces " + akTarget.GetDisplayName() + ".", \
         akInitiator, akTarget)
 
     PlayPairedLoopAnim(akInitiator, akTarget, \
@@ -2402,8 +2521,8 @@ Function FrontHug_Execute(Actor akInitiator, Actor akTarget)
         "BaboFrontHugLoopM",    "BaboFrontHugLoopF", \
         2.0, fHugLoopDuration)
 
-    SkyrimNetApi.RegisterEvent("baka_interaction_end", \
-        akInitiator.GetDisplayName() + " steps back from " + akTarget.GetDisplayName() + ".", \
+    _CueOutcome("baka_intimate", \
+        akInitiator.GetDisplayName() + " and " + akTarget.GetDisplayName() + " shared a close embrace.", \
         akInitiator, akTarget)
     UnlockBoth(akInitiator, akTarget)
 EndFunction
@@ -2420,8 +2539,8 @@ Function KissLove_Execute(Actor akInitiator, Actor akTarget)
     EndIf
     RecordAnimation(akInitiator, "KissLove", akTarget.GetDisplayName())
     RecordAnimation(akTarget,    "KissLove", akInitiator.GetDisplayName())
-    SkyrimNetApi.RegisterEvent("baka_interaction_start", \
-        akInitiator.GetDisplayName() + " kisses " + akTarget.GetDisplayName() + ".", \
+    _CueOngoing("baka_intimate", \
+        akInitiator.GetDisplayName() + " kisses " + akTarget.GetDisplayName() + " tenderly.", \
         akInitiator, akTarget)
 
     String[] a1 = new String[2]
@@ -2442,8 +2561,8 @@ Function KissLove_Execute(Actor akInitiator, Actor akTarget)
 
     PlayPairedSequence(akInitiator, akTarget, 0.0, 5.0, 180.0, a1, a2, fKissLoopDuration)
 
-    SkyrimNetApi.RegisterEvent("baka_interaction_end", \
-        akInitiator.GetDisplayName() + " and " + akTarget.GetDisplayName() + " part.", \
+    _CueOutcome("baka_intimate", \
+        akInitiator.GetDisplayName() + " and " + akTarget.GetDisplayName() + " shared a kiss.", \
         akInitiator, akTarget)
     UnlockBoth(akInitiator, akTarget)
 EndFunction
@@ -2460,8 +2579,8 @@ Function ForcedKiss_Execute(Actor akInitiator, Actor akTarget)
     EndIf
     RecordAnimation(akInitiator, "ForcedKiss", akTarget.GetDisplayName())
     RecordAnimation(akTarget,    "ForcedKiss", akInitiator.GetDisplayName())
-    SkyrimNetApi.RegisterEvent("baka_interaction_start", \
-        akInitiator.GetDisplayName() + " forces a kiss on " + akTarget.GetDisplayName() + ".", \
+    _CueOngoing("baka_forced", \
+        akInitiator.GetDisplayName() + " forces a kiss on " + akTarget.GetDisplayName() + "; " + akTarget.GetDisplayName() + " struggles.", \
         akInitiator, akTarget)
     PlayPanicSound(akTarget)
     _StartTears(akTarget)
@@ -2469,17 +2588,18 @@ Function ForcedKiss_Execute(Actor akInitiator, Actor akTarget)
     ; A2_* = aggressor role, A1_* = passive/victim role (SLAP convention).
     ; Initiator is always the aggressor — always plays A2_*. No QTE.
     ; Face-to-face, very close (kiss).
+    Float yKiss = fForcedKissSep_NPC
+    If akInitiator == PlayerRef || akTarget == PlayerRef
+        yKiss = fForcedKissSep_PC
+    EndIf
     PlayPairedLoopAnim(akInitiator, akTarget, \
-        0.0, 0.0, 180.0, \
+        0.0, yKiss, 180.0, \
         "SLAPForcedKiss01_A2_S01",    "SLAPForcedKiss01_A1_S01", \
         "SLAPForcedKiss01_A2_Loop",   "SLAPForcedKiss01_A1_Loop", \
         2.0, fKissLoopDuration)
 
-    SkyrimNetApi.RegisterEvent("baka_panic", \
-        akTarget.GetDisplayName() + " was kissed by force by " + akInitiator.GetDisplayName() + ".", \
-        akInitiator, akTarget)
-    SkyrimNetApi.RegisterEvent("baka_interaction_end", \
-        akInitiator.GetDisplayName() + " releases " + akTarget.GetDisplayName() + ".", \
+    _CueOutcome("baka_forced", \
+        akInitiator.GetDisplayName() + " forced a kiss on " + akTarget.GetDisplayName() + " against their will.", \
         akInitiator, akTarget)
     UnlockBoth(akInitiator, akTarget)
 EndFunction
@@ -2498,8 +2618,8 @@ Function TouchBreasts_Execute(Actor akInitiator, Actor akTarget)
     EndIf
     RecordAnimation(akInitiator, "TouchBreasts", akTarget.GetDisplayName())
     RecordAnimation(akTarget,    "TouchBreasts", akInitiator.GetDisplayName())
-    SkyrimNetApi.RegisterEvent("baka_interaction_start", \
-        akInitiator.GetDisplayName() + " touches " + akTarget.GetDisplayName() + "'s chest.", \
+    _CueOngoing("baka_forced", \
+        akInitiator.GetDisplayName() + " gropes " + akTarget.GetDisplayName() + "'s breasts; " + akTarget.GetDisplayName() + " struggles.", \
         akInitiator, akTarget)
 
     _StartTears(akTarget)
@@ -2508,8 +2628,8 @@ Function TouchBreasts_Execute(Actor akInitiator, Actor akTarget)
         "Babo_TouchingBreasts_A02", "Babo_TouchingBreasts_A01", \
         fTouchLoopDuration)
 
-    SkyrimNetApi.RegisterEvent("baka_interaction_end", \
-        akInitiator.GetDisplayName() + " steps back from " + akTarget.GetDisplayName() + ".", \
+    _CueOutcome("baka_forced", \
+        akInitiator.GetDisplayName() + " groped " + akTarget.GetDisplayName() + "'s breasts.", \
         akInitiator, akTarget)
     UnlockBoth(akInitiator, akTarget)
 EndFunction
@@ -2528,8 +2648,8 @@ Function SuckBreasts_Execute(Actor akInitiator, Actor akTarget)
     EndIf
     RecordAnimation(akInitiator, "SuckBreasts", akTarget.GetDisplayName())
     RecordAnimation(akTarget,    "SuckBreasts", akInitiator.GetDisplayName())
-    SkyrimNetApi.RegisterEvent("baka_interaction_start", \
-        akInitiator.GetDisplayName() + " pulls " + akTarget.GetDisplayName() + " closer.", \
+    _CueOngoing("baka_forced", \
+        akInitiator.GetDisplayName() + " forces their mouth to " + akTarget.GetDisplayName() + "'s breasts; " + akTarget.GetDisplayName() + " struggles.", \
         akInitiator, akTarget)
 
     _StartTears(akTarget)
@@ -2538,8 +2658,8 @@ Function SuckBreasts_Execute(Actor akInitiator, Actor akTarget)
         "Babo_SuckingBreasts_A02", "Babo_SuckingBreasts_A01", \
         fTouchLoopDuration)
 
-    SkyrimNetApi.RegisterEvent("baka_interaction_end", \
-        akInitiator.GetDisplayName() + " releases " + akTarget.GetDisplayName() + ".", \
+    _CueOutcome("baka_forced", \
+        akInitiator.GetDisplayName() + " forced their mouth on " + akTarget.GetDisplayName() + "'s breasts.", \
         akInitiator, akTarget)
     UnlockBoth(akInitiator, akTarget)
 EndFunction
@@ -2558,8 +2678,8 @@ Function ExaminePrivates_Execute(Actor akInitiator, Actor akTarget)
     EndIf
     RecordAnimation(akInitiator, "ExaminePrivates", akTarget.GetDisplayName())
     RecordAnimation(akTarget,    "ExaminePrivates", akInitiator.GetDisplayName())
-    SkyrimNetApi.RegisterEvent("baka_interaction_start", \
-        akInitiator.GetDisplayName() + " examines " + akTarget.GetDisplayName() + " intimately.", \
+    _CueOngoing("baka_forced", \
+        akInitiator.GetDisplayName() + " forces " + akTarget.GetDisplayName() + " open and examines them; " + akTarget.GetDisplayName() + " struggles.", \
         akInitiator, akTarget)
     PlayPanicSound(akTarget)
     _StartTears(akTarget)
@@ -2575,12 +2695,7 @@ Function ExaminePrivates_Execute(Actor akInitiator, Actor akTarget)
         _UnlockAttackerOnly(akInitiator)
         _DefeatGroundWindow(akInitiator, akTarget)
     Else
-        SkyrimNetApi.RegisterEvent("baka_panic", \
-            akTarget.GetDisplayName() + " was examined by " + akInitiator.GetDisplayName() + ".", \
-            akInitiator, akTarget)
-        SkyrimNetApi.RegisterEvent("baka_interaction_end", \
-            akInitiator.GetDisplayName() + " steps back from " + akTarget.GetDisplayName() + ".", \
-            akInitiator, akTarget)
+        _CueResistOutcome("baka_forced", akInitiator, akTarget)
         UnlockBoth(akInitiator, akTarget)
     EndIf
 EndFunction
@@ -2599,8 +2714,8 @@ Function PlayPrivates_Execute(Actor akInitiator, Actor akTarget)
     EndIf
     RecordAnimation(akInitiator, "PlayPrivates", akTarget.GetDisplayName())
     RecordAnimation(akTarget,    "PlayPrivates", akInitiator.GetDisplayName())
-    SkyrimNetApi.RegisterEvent("baka_interaction_start", \
-        akInitiator.GetDisplayName() + " touches " + akTarget.GetDisplayName() + " between the legs.", \
+    _CueOngoing("baka_forced", \
+        akInitiator.GetDisplayName() + " gropes " + akTarget.GetDisplayName() + " between the legs; " + akTarget.GetDisplayName() + " struggles.", \
         akInitiator, akTarget)
     PlayPanicSound(akTarget)
     _StartTears(akTarget)
@@ -2616,12 +2731,7 @@ Function PlayPrivates_Execute(Actor akInitiator, Actor akTarget)
         _UnlockAttackerOnly(akInitiator)
         _DefeatGroundWindow(akInitiator, akTarget)
     Else
-        SkyrimNetApi.RegisterEvent("baka_panic", \
-            akTarget.GetDisplayName() + " was touched by " + akInitiator.GetDisplayName() + ".", \
-            akInitiator, akTarget)
-        SkyrimNetApi.RegisterEvent("baka_interaction_end", \
-            akInitiator.GetDisplayName() + " withdraws from " + akTarget.GetDisplayName() + ".", \
-            akInitiator, akTarget)
+        _CueResistOutcome("baka_forced", akInitiator, akTarget)
         UnlockBoth(akInitiator, akTarget)
     EndIf
 EndFunction
@@ -2640,8 +2750,8 @@ Function OralOnTarget_Execute(Actor akInitiator, Actor akTarget)
     EndIf
     RecordAnimation(akInitiator, "OralOnTarget", akTarget.GetDisplayName())
     RecordAnimation(akTarget,    "OralOnTarget", akInitiator.GetDisplayName())
-    SkyrimNetApi.RegisterEvent("baka_interaction_start", \
-        akInitiator.GetDisplayName() + " kneels before " + akTarget.GetDisplayName() + ".", \
+    _CueOngoing("baka_forced", \
+        akInitiator.GetDisplayName() + " forces oral on " + akTarget.GetDisplayName() + "; " + akTarget.GetDisplayName() + " struggles.", \
         akInitiator, akTarget)
 
     _StartTears(akTarget)
@@ -2650,8 +2760,8 @@ Function OralOnTarget_Execute(Actor akInitiator, Actor akTarget)
         "BaboSuckingPussyA02", "BaboSuckingPussyA01", \
         fTouchLoopDuration)
 
-    SkyrimNetApi.RegisterEvent("baka_interaction_end", \
-        akInitiator.GetDisplayName() + " stands back up.", \
+    _CueOutcome("baka_forced", \
+        akInitiator.GetDisplayName() + " forced oral on " + akTarget.GetDisplayName() + ".", \
         akInitiator, akTarget)
     UnlockBoth(akInitiator, akTarget)
 EndFunction
@@ -2672,7 +2782,7 @@ Function Spanking_Execute(Actor akInitiator, Actor akTarget)
     EndIf
     RecordAnimation(akInitiator, "Spanking", akTarget.GetDisplayName())
     RecordAnimation(akTarget,    "Spanking", akInitiator.GetDisplayName())
-    SkyrimNetApi.RegisterEvent("baka_interaction_start", \
+    _CueOngoing("baka_forced", \
         akInitiator.GetDisplayName() + " spanks " + akTarget.GetDisplayName() + ".", \
         akInitiator, akTarget)
     ; No slap here — the Babo spanking anim plays its own impact, so ours would
@@ -2686,8 +2796,8 @@ Function Spanking_Execute(Actor akInitiator, Actor akTarget)
     ApplyFaceMarks(akTarget)
     _StartTears(akTarget)
 
-    SkyrimNetApi.RegisterEvent("baka_interaction_end", \
-        akInitiator.GetDisplayName() + " finishes spanking " + akTarget.GetDisplayName() + ".", \
+    _CueOutcome("baka_forced", \
+        akInitiator.GetDisplayName() + " spanked " + akTarget.GetDisplayName() + ".", \
         akInitiator, akTarget)
     UnlockBoth(akInitiator, akTarget)
 EndFunction
@@ -2704,8 +2814,8 @@ Function WombHit_Execute(Actor akInitiator, Actor akTarget)
     EndIf
     RecordAnimation(akInitiator, "WombHit", akTarget.GetDisplayName())
     RecordAnimation(akTarget,    "WombHit", akInitiator.GetDisplayName())
-    SkyrimNetApi.RegisterEvent("baka_interaction_start", \
-        akInitiator.GetDisplayName() + " strikes " + akTarget.GetDisplayName() + " in the belly.", \
+    _CueOngoing("baka_forced", \
+        akInitiator.GetDisplayName() + " punches " + akTarget.GetDisplayName() + " in the gut, dropping them.", \
         akInitiator, akTarget)
     _StartTears(akTarget)
     ; _bQTEDefeated=True so _CleanupPair (inside PlayPairedLoopAnim) skips standing the victim
@@ -2738,7 +2848,7 @@ Function Flirt_Execute(Actor akInitiator, Actor akTarget)
     EndIf
     RecordAnimation(akInitiator, "Flirt", akTarget.GetDisplayName())
     RecordAnimation(akTarget,    "Flirt", akInitiator.GetDisplayName())
-    SkyrimNetApi.RegisterEvent("baka_interaction_start", \
+    _CueOngoing("baka_intimate", \
         akInitiator.GetDisplayName() + " flirts with " + akTarget.GetDisplayName() + ".", \
         akInitiator, akTarget)
 
@@ -2753,8 +2863,8 @@ Function Flirt_Execute(Actor akInitiator, Actor akTarget)
     ; Mark that this actor flirted — unlocks the flirt escalations (face/breast/pussy) for a while.
     StorageUtil.SetFloatValue(akInitiator, "SNBaka.LastFlirt", Utility.GetCurrentGameTime())
 
-    SkyrimNetApi.RegisterEvent("baka_interaction_end", \
-        akInitiator.GetDisplayName() + " looks away from " + akTarget.GetDisplayName() + ".", \
+    _CueOutcome("baka_intimate", \
+        akInitiator.GetDisplayName() + " flirted with " + akTarget.GetDisplayName() + ".", \
         akInitiator, akTarget)
     UnlockBoth(akInitiator, akTarget)
 EndFunction
@@ -2782,14 +2892,14 @@ Function _FlirtEscalate(Actor akInitiator, Actor akTarget, String animA1, String
         Return
     EndIf
     RecordAnimation(akInitiator, "Flirt", akTarget.GetDisplayName())
-    SkyrimNetApi.RegisterEvent("baka_interaction_start", \
+    _CueOngoing("baka_intimate", \
         akInitiator.GetDisplayName() + " " + what + " " + akTarget.GetDisplayName() + ".", \
         akInitiator, akTarget)
     PlayPairedSimpleAnim(akInitiator, akTarget, 0.0, 0.0, 180.0, animA1, animA2, fTouchLoopDuration)
     ; Keep the escalation window alive so the chain can continue.
     StorageUtil.SetFloatValue(akInitiator, "SNBaka.LastFlirt", Utility.GetCurrentGameTime())
-    SkyrimNetApi.RegisterEvent("baka_interaction_end", \
-        akInitiator.GetDisplayName() + " eases back from " + akTarget.GetDisplayName() + ".", \
+    _CueOutcome("baka_intimate", \
+        akInitiator.GetDisplayName() + " and " + akTarget.GetDisplayName() + " shared a charged, intimate moment.", \
         akInitiator, akTarget)
     UnlockBoth(akInitiator, akTarget)
 EndFunction
@@ -2820,8 +2930,8 @@ Function CapturedInspect_Execute(Actor akInitiator, Actor akTarget)
     EndIf
     RecordAnimation(akInitiator, "CapturedInspect", akTarget.GetDisplayName())
     RecordAnimation(akTarget,    "CapturedInspect", akInitiator.GetDisplayName())
-    SkyrimNetApi.RegisterEvent("baka_interaction_start", \
-        akInitiator.GetDisplayName() + " forces " + akTarget.GetDisplayName() + " to submit to inspection.", \
+    _CueOngoing("baka_forced", \
+        akInitiator.GetDisplayName() + " inspects captured " + akTarget.GetDisplayName() + "'s body; " + akTarget.GetDisplayName() + " struggles.", \
         akInitiator, akTarget)
     PlayPanicSound(akTarget)
     _StartTears(akTarget)
@@ -2843,15 +2953,10 @@ Function CapturedInspect_Execute(Actor akInitiator, Actor akTarget)
         _UnlockAttackerOnly(akInitiator)
         _DefeatGroundWindow(akInitiator, akTarget)
     Else
-        SkyrimNetApi.RegisterEvent("baka_panic", \
-            akTarget.GetDisplayName() + " was inspected against their will by " + akInitiator.GetDisplayName() + ".", \
-            akInitiator, akTarget)
         If !_bAELVictimEscaped
             _RecoveryPeriod(akTarget, akInitiator, 10.0)
         EndIf
-        SkyrimNetApi.RegisterEvent("baka_interaction_end", \
-            akInitiator.GetDisplayName() + " releases " + akTarget.GetDisplayName() + ".", \
-            akInitiator, akTarget)
+        _CueResistOutcome("baka_forced", akInitiator, akTarget)
         UnlockBoth(akInitiator, akTarget)
     EndIf
 EndFunction
@@ -2870,8 +2975,8 @@ Function Investigate_Execute(Actor akInitiator, Actor akTarget)
     EndIf
     RecordAnimation(akInitiator, "Investigate", akTarget.GetDisplayName())
     RecordAnimation(akTarget,    "Investigate", akInitiator.GetDisplayName())
-    SkyrimNetApi.RegisterEvent("baka_interaction_start", \
-        akInitiator.GetDisplayName() + " begins a thorough inspection of " + akTarget.GetDisplayName() + ".", \
+    _CueOngoing("baka_forced", \
+        akInitiator.GetDisplayName() + " inspects " + akTarget.GetDisplayName() + "'s body; " + akTarget.GetDisplayName() + " struggles.", \
         akInitiator, akTarget)
     PlayPanicSound(akTarget)
     _StartTears(akTarget)
@@ -2896,9 +3001,7 @@ Function Investigate_Execute(Actor akInitiator, Actor akTarget)
         If !_bAELVictimEscaped
             _RecoveryPeriod(akTarget, akInitiator, 10.0)
         EndIf
-        SkyrimNetApi.RegisterEvent("baka_interaction_end", \
-            akInitiator.GetDisplayName() + " finishes inspecting " + akTarget.GetDisplayName() + ".", \
-            akInitiator, akTarget)
+        _CueResistOutcome("baka_forced", akInitiator, akTarget)
         UnlockBoth(akInitiator, akTarget)
     EndIf
 EndFunction
@@ -2914,8 +3017,8 @@ Function Struggle_Execute(Actor akInitiator, Actor akTarget)
     EndIf
     RecordAnimation(akInitiator, "Struggle", akTarget.GetDisplayName())
     RecordAnimation(akTarget,    "Struggle", akInitiator.GetDisplayName())
-    SkyrimNetApi.RegisterEvent("baka_interaction_start", \
-        akInitiator.GetDisplayName() + " struggles with " + akTarget.GetDisplayName() + ".", \
+    _CueOngoing("baka_forced", \
+        akInitiator.GetDisplayName() + " grapples " + akTarget.GetDisplayName() + " to overpower them; " + akTarget.GetDisplayName() + " fights back.", \
         akInitiator, akTarget)
     _StartTears(akTarget)
     If bExpressionsEnabled
@@ -2952,15 +3055,10 @@ Function Struggle_Execute(Actor akInitiator, Actor akTarget)
         _UnlockAttackerOnly(akInitiator)
         _DefeatGroundWindow(akInitiator, akTarget)
     Else
-        SkyrimNetApi.RegisterEvent("baka_panic", \
-            akTarget.GetDisplayName() + " was overpowered by " + akInitiator.GetDisplayName() + ".", \
-            akInitiator, akTarget)
         If !_bAELVictimEscaped
             _RecoveryPeriod(akTarget, akInitiator, 10.0)
         EndIf
-        SkyrimNetApi.RegisterEvent("baka_interaction_end", \
-            akInitiator.GetDisplayName() + " steps back from " + akTarget.GetDisplayName() + ".", \
-            akInitiator, akTarget)
+        _CueResistOutcome("baka_forced", akInitiator, akTarget)
         If bExpressionsEnabled
             _ClearExpression(akTarget)
         EndIf
@@ -2979,8 +3077,8 @@ Function ChokeHug_Execute(Actor akInitiator, Actor akTarget)
     EndIf
     RecordAnimation(akInitiator, "ChokeHug", akTarget.GetDisplayName())
     RecordAnimation(akTarget,    "ChokeHug", akInitiator.GetDisplayName())
-    SkyrimNetApi.RegisterEvent("baka_interaction_start", \
-        akInitiator.GetDisplayName() + " seizes " + akTarget.GetDisplayName() + " by the throat.", \
+    _CueOngoing("baka_forced", \
+        akInitiator.GetDisplayName() + " chokes " + akTarget.GetDisplayName() + " from behind; " + akTarget.GetDisplayName() + " fights back.", \
         akInitiator, akTarget)
     PlayPanicSound(akTarget)
     _StartTears(akTarget)
@@ -3023,15 +3121,10 @@ Function ChokeHug_Execute(Actor akInitiator, Actor akTarget)
         EndIf
         _DefeatGroundWindow(akInitiator, akTarget)
     Else
-        SkyrimNetApi.RegisterEvent("baka_panic", \
-            akTarget.GetDisplayName() + " was choked and held by " + akInitiator.GetDisplayName() + ".", \
-            akInitiator, akTarget)
         If !_bAELVictimEscaped
             _RecoveryPeriod(akTarget, akInitiator, 10.0)
         EndIf
-        SkyrimNetApi.RegisterEvent("baka_interaction_end", \
-            akInitiator.GetDisplayName() + " releases " + akTarget.GetDisplayName() + ".", \
-            akInitiator, akTarget)
+        _CueResistOutcome("baka_forced", akInitiator, akTarget)
         If bExpressionsEnabled
             _ClearExpression(akTarget)
         EndIf
@@ -3051,8 +3144,8 @@ Function DrunkExploit_Execute(Actor akInitiator, Actor akTarget)
     EndIf
     RecordAnimation(akInitiator, "DrunkExploit", akTarget.GetDisplayName())
     RecordAnimation(akTarget,    "DrunkExploit", akInitiator.GetDisplayName())
-    SkyrimNetApi.RegisterEvent("baka_interaction_start", \
-        akInitiator.GetDisplayName() + " takes advantage of " + akTarget.GetDisplayName() + "'s inebriated state.", \
+    _CueOngoing("baka_forced", \
+        akInitiator.GetDisplayName() + " gropes " + akTarget.GetDisplayName() + ", drunk and defenseless.", \
         akInitiator, akTarget)
 
     String[] a1 = new String[5]
@@ -3075,22 +3168,17 @@ Function DrunkExploit_Execute(Actor akInitiator, Actor akTarget)
     If akInitiator == PlayerRef
         _fPlayerZAdjust = -1.0
     EndIf
-    PlayPairedSequence(akInitiator, akTarget, 0.0, -2.0, 0.0, a1, a2, fSequenceStageTimer, True)   ; -4 -> -2 (2 units closer)
+    PlayPairedSequence(akInitiator, akTarget, 3.0, -2.0, 0.0, a1, a2, fSequenceStageTimer, True)   ; x=3 (victim ~3 to attacker's left), y=-2
     _fPlayerZAdjust = 0.0
     If _bQTEDefeated
         _bQTEDefeated = False
         _UnlockAttackerOnly(akInitiator)
         _DefeatGroundWindow(akInitiator, akTarget)
     Else
-        SkyrimNetApi.RegisterEvent("baka_panic", \
-            akTarget.GetDisplayName() + " shook off the daze and pulled away from " + akInitiator.GetDisplayName() + ".", \
-            akInitiator, akTarget)
         If !_bAELVictimEscaped
             _RecoveryPeriod(akTarget, akInitiator, 8.0)
         EndIf
-        SkyrimNetApi.RegisterEvent("baka_interaction_end", \
-            akInitiator.GetDisplayName() + " is left empty-handed.", \
-            akInitiator, akTarget)
+        _CueResistOutcome("baka_forced", akInitiator, akTarget)
         UnlockBoth(akInitiator, akTarget)   ; <-- was missing: left the power soft-locked on a drunk-exploit escape
     EndIf
 EndFunction
@@ -3111,9 +3199,8 @@ Function DrugFood_Execute(Actor akInitiator, Actor akTarget)
     EndIf
     RecordAnimation(akInitiator, "DrugFood", akTarget.GetDisplayName())
     RecordAnimation(akTarget,    "DrugFood", akInitiator.GetDisplayName())
-    SkyrimNetApi.RegisterEvent("baka_interaction_start", \
-        akInitiator.GetDisplayName() + " slips something into the food and offers it to " + akTarget.GetDisplayName() + ". " + \
-        "Only " + akInitiator.GetDisplayName() + " knows what is really in it.", \
+    _CueOngoing("baka_forced", \
+        akInitiator.GetDisplayName() + " offers " + akTarget.GetDisplayName() + " food secretly spiked with something.", \
         akInitiator, akTarget)
 
     ; _bQTEDefeated=True so _CleanupPair skips standing the victim up + re-evaluating their
@@ -3147,7 +3234,7 @@ Function ShowingOffBody_Execute(Actor akInitiator, Actor akTarget)
     EndIf
     RecordAnimation(akInitiator, "ShowingOffBody", akTarget.GetDisplayName())
     RecordAnimation(akTarget,    "ShowingOffBody", akInitiator.GetDisplayName())
-    SkyrimNetApi.RegisterEvent("baka_interaction_start", \
+    _CueOngoing("baka_intimate", \
         akInitiator.GetDisplayName() + " shows off their body to " + akTarget.GetDisplayName() + ".", \
         akInitiator, akTarget)
 
@@ -3156,8 +3243,8 @@ Function ShowingOffBody_Execute(Actor akInitiator, Actor akTarget)
         "BaboShowingOffBodyA2", "BaboShowingOffBodyA1", \
         fMolestLoopDuration)
 
-    SkyrimNetApi.RegisterEvent("baka_interaction_end", \
-        akInitiator.GetDisplayName() + " finishes their display.", \
+    _CueOutcome("baka_intimate", \
+        akInitiator.GetDisplayName() + " showed off their body to " + akTarget.GetDisplayName() + ".", \
         akInitiator, akTarget)
     UnlockBoth(akInitiator, akTarget)
 EndFunction
@@ -3178,19 +3265,24 @@ Function FondlePussy_Execute(Actor akInitiator, Actor akTarget)
     EndIf
     RecordAnimation(akInitiator, "FondlePussy", akTarget.GetDisplayName())
     RecordAnimation(akTarget,    "FondlePussy", akInitiator.GetDisplayName())
-    SkyrimNetApi.RegisterEvent("baka_interaction_start", \
-        akInitiator.GetDisplayName() + " reaches for " + akTarget.GetDisplayName() + " between the legs.", \
+    _CueOngoing("baka_forced", \
+        akInitiator.GetDisplayName() + " fondles " + akTarget.GetDisplayName() + " between the legs; " + akTarget.GetDisplayName() + " struggles.", \
         akInitiator, akTarget)
     _StartTears(akTarget)
 
-    ; Attacker directly behind the victim, in line (no lateral shift, same facing).
+    ; Attacker directly behind the victim, in line (no lateral shift, same facing -> victim's
+    ; back to the attacker). See POSITIONING TUNING block at top.
+    Float yFondle = fFondleSep_NPC
+    If akInitiator == PlayerRef || akTarget == PlayerRef
+        yFondle = fFondleSep_PC
+    EndIf
     PlayPairedSimpleAnim(akInitiator, akTarget, \
-        0.0, -20.0, 0.0, \
+        0.0, yFondle, 0.0, \
         "BaboPlayingPussyA2", "BaboPlayingPussyA1", \
         fTouchLoopDuration)
 
-    SkyrimNetApi.RegisterEvent("baka_interaction_end", \
-        akInitiator.GetDisplayName() + " withdraws from " + akTarget.GetDisplayName() + ".", \
+    _CueOutcome("baka_forced", \
+        akInitiator.GetDisplayName() + " fondled " + akTarget.GetDisplayName() + " between the legs.", \
         akInitiator, akTarget)
     UnlockBoth(akInitiator, akTarget)
 EndFunction

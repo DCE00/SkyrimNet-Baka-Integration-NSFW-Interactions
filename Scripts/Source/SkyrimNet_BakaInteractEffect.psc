@@ -9,9 +9,17 @@ Event OnEffectStart(Actor akTarget, Actor akCaster)
         Return
     EndIf
 
+    Bool dbg = BakaMain.bDebugLog
+    If dbg
+        Debug.Trace("[SNBaka][POWER] interact power pressed by " + akCaster.GetDisplayName())
+    EndIf
+
     ; The interact power is self-delivered, so akTarget is always the player.
     ; In a sex scene we don't need a target — the spank menu finds partners itself.
     If BakaMain.IsInSexAnimation(akCaster)
+        If dbg
+            Debug.Notification("[Baka] power: spank menu (in a sex scene)")
+        EndIf
         BakaMain.SexSpank_ShowMenu(akCaster)
         Return
     EndIf
@@ -19,7 +27,16 @@ Event OnEffectStart(Actor akTarget, Actor akCaster)
     ; Otherwise resolve the real NPC the player is aiming at (crosshair / nearest).
     Actor realTarget = SNBakaUI.GetInteractTarget()
     If !realTarget
+        If dbg
+            Debug.Notification("[Baka] power pressed — no target on the crosshair")
+            Debug.Trace("[SNBaka][POWER] no interact target (no actor on crosshair / in range)")
+        EndIf
         Return
+    EndIf
+
+    If dbg
+        Debug.Notification("[Baka] power -> " + realTarget.GetDisplayName())
+        Debug.Trace("[SNBaka][POWER] target=" + realTarget.GetDisplayName() + " bleedingOut=" + realTarget.IsBleedingOut())
     EndIf
 
     ; Downed victim -> escalate (choke -> sex).  Both the bleedout state and the

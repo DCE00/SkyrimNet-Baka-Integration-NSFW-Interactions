@@ -9,7 +9,7 @@ static constexpr const char* kMenuHTMLPath    = "SNBaka_Menu/index.html";
 static std::vector<RE::FormID> s_noCollisionActors;
 static constexpr const char* kModEventName    = "SNBaka_MenuChoice";
 static constexpr float       kSexScanRadius   = 300.0f;  // Skyrim units (~5 m)
-static constexpr float       kInteractRadius  = 300.0f;  // fallback nearest-actor range when crosshair is empty
+static constexpr float       kInteractRadius  = 150.0f;  // fallback nearest-actor range when crosshair is empty (was 300 — grabbed distant NPCs)
 
 // SexLab.esm raw FormID for SexLabAnimatingFaction (0x0400E50F → local 0xE50F).
 // Used as a C++ fallback when the Papyrus IsInSexAnimation faction check races.
