@@ -1942,23 +1942,29 @@ Function _DoEscalation(Actor akA1, Actor akA2)
     ; A1 starts ~5 units in front of A2 (very close — 14 read too far apart).  z-offset 0
     ; places A1 at A2's EXACT Z so they're at the same height on stairs/slopes.
     Float angZ = akA2.GetAngleZ()
-    ; A1 ~5 units in front of A2 (NPC victim). The player victim read too far at 5, so bring the
-    ; attacker 5 units closer (co-located) when the player is the one being escalated on.
-    Float dist = fEscalDist_NPC            ; see POSITIONING TUNING block at top
+    ; Escalation is VICTIM-anchored (the victim is DOWNED in place), so this is the one case where the
+    ; offset positions the ATTACKER relative to the (downed) victim. Tunable via SNBaka_Offsets.ini key
+    ; "Escalation": x=right/left, y=front/back, z=up/down of the attacker vs the victim, rot=attacker
+    ; facing (180 = facing the victim). Defaults fall back to fEscalDist_* / 180 so no .ini = old behavior.
+    Float defDist = fEscalDist_NPC
     If akA2 == PlayerRef
-        dist = fEscalDist_PCVic
+        defDist = fEscalDist_PCVic
     EndIf
-    Float offX = dist * Math.Sin(angZ)
-    Float offY = dist * Math.Cos(angZ)
+    Float ox   = SNBakaUI.GetOffset("Escalation", "x", 0.0)
+    Float oy   = SNBakaUI.GetOffset("Escalation", "y", defDist)
+    Float oz   = SNBakaUI.GetOffset("Escalation", "z", 0.0)
+    Float orot = SNBakaUI.GetOffset("Escalation", "rot", 180.0)
+    Float offX = (oy * Math.Sin(angZ)) + (ox * Math.Cos(angZ))
+    Float offY = (oy * Math.Cos(angZ)) - (ox * Math.Sin(angZ))
 
     akA1.MoveTo(akA2, offX, offY, 0.0, False)
     Utility.Wait(0.1)
-    ; Snap A1 to A2's Z explicitly too, in case the navmesh nudged it off on a slope.
-    akA1.SetPosition(akA1.GetPositionX(), akA1.GetPositionY(), akA2.GetPositionZ())
-    akA1.SetAngle(0.0, 0.0, angZ + 180.0)   ; attacker faces the victim (was parallel/same-facing)
+    ; Snap A1 to A2's Z (+ z offset), in case the navmesh nudged it off on a slope.
+    akA1.SetPosition(akA1.GetPositionX(), akA1.GetPositionY(), akA2.GetPositionZ() + oz)
+    akA1.SetAngle(0.0, 0.0, angZ + orot)
     akA2.SetAngle(0.0, 0.0, angZ)
-    Debug.Trace("[SNBaka] _DoEscalation: A1 snapped to (" + akA1.GetPositionX() + "," + akA1.GetPositionY() + ") angle=" + (angZ + 180.0))
-    _LogPair("Escalation", akA1, akA2, 0.0, dist, 180.0, angZ + 180.0)
+    Debug.Trace("[SNBaka] _DoEscalation: A1 snapped to (" + akA1.GetPositionX() + "," + akA1.GetPositionY() + ") angle=" + (angZ + orot))
+    _LogPair("Escalation", akA1, akA2, ox, oy, orot, angZ + orot)
 
     ; Roles: A1 (attacker) plays A2_S1 (crouching straddler), A2 (victim) plays A1_S1 (downed).
     Debug.SendAnimationEvent(akA1, "Babo_DefeatResist_A2_S1")
@@ -2866,7 +2872,7 @@ String Function GetFlirted(Actor akActor)
     Return "false"
 EndFunction
 
-Function _FlirtEscalate(Actor akInitiator, Actor akTarget, String animA1, String animA2, String what)
+Function _FlirtEscalate(Actor akInitiator, Actor akTarget, String animA1, String animA2, String what, Float rotOffset = 180.0)
     If !IsEligible(akInitiator, akTarget)
         Return
     EndIf
@@ -2877,7 +2883,8 @@ Function _FlirtEscalate(Actor akInitiator, Actor akTarget, String animA1, String
     _CueOngoing("baka_intimate", \
         akInitiator.GetDisplayName() + " " + what + " " + akTarget.GetDisplayName() + ".", \
         akInitiator, akTarget)
-    PlayPairedSimpleAnim(akInitiator, akTarget, 0.0, 0.0, 180.0, animA1, animA2, fTouchLoopDuration)
+    ; animA1 is played by the INITIATOR (the toucher); pass the toucher-role anim there.
+    PlayPairedSimpleAnim(akInitiator, akTarget, 0.0, 0.0, rotOffset, animA1, animA2, fTouchLoopDuration)
     ; Keep the escalation window alive so the chain can continue.
     StorageUtil.SetFloatValue(akInitiator, "SNBaka.LastFlirt", Utility.GetCurrentGameTime())
     _CueOutcome("baka_intimate", \
@@ -2886,16 +2893,18 @@ Function _FlirtEscalate(Actor akInitiator, Actor akTarget, String animA1, String
     UnlockBoth(akInitiator, akTarget)
 EndFunction
 
+; Initiator plays the _A02 (toucher) role; target plays _A01. Caress = face-to-face (rot 180);
+; tease breasts/below = same direction (rot 0), with the initiator behind for "below".
 Function FlirtFace_Execute(Actor akInitiator, Actor akTarget)
-    _FlirtEscalate(akInitiator, akTarget, "Babo_FlirtFace_A01", "Babo_FlirtFace_A02", "tenderly caresses the face of")
+    _FlirtEscalate(akInitiator, akTarget, "Babo_FlirtFace_A02", "Babo_FlirtFace_A01", "tenderly caresses the face of", 180.0)
 EndFunction
 
 Function FlirtBreast_Execute(Actor akInitiator, Actor akTarget)
-    _FlirtEscalate(akInitiator, akTarget, "Babo_FlirtBreast_A01", "Babo_FlirtBreast_A02", "playfully fondles the breasts of")
+    _FlirtEscalate(akInitiator, akTarget, "Babo_FlirtBreast_A02", "Babo_FlirtBreast_A01", "playfully fondles the breasts of", 0.0)
 EndFunction
 
 Function FlirtPussy_Execute(Actor akInitiator, Actor akTarget)
-    _FlirtEscalate(akInitiator, akTarget, "Babo_FlirtPussy_A01", "Babo_FlirtPussy_A02", "slips a hand between the legs of")
+    _FlirtEscalate(akInitiator, akTarget, "Babo_FlirtPussy_A02", "Babo_FlirtPussy_A01", "slips a hand between the legs of", 0.0)
 EndFunction
 
 ; --- CapturedInspect --- [FEMALE TARGET REQUIRED] [bResistable]
@@ -3259,7 +3268,7 @@ Function FondlePussy_Execute(Actor akInitiator, Actor akTarget)
         yFondle = fFondleSep_PC
     EndIf
     PlayPairedSimpleAnim(akInitiator, akTarget, \
-        0.0, 0.0, 0.0, \
+        0.0, 0.0, 180.0, \
         "BaboPlayingPussyA2", "BaboPlayingPussyA1", \
         fTouchLoopDuration)
 
@@ -3484,6 +3493,19 @@ Function _DispatchInteractAction(Int choice)
         DrugFood_Execute(cst, tgt)
     ElseIf choice == 15
         FondlePussy_Execute(cst, tgt)
+    ; --- new player-accessible NPC actions (no QTE) ---
+    ElseIf choice == 16
+        FlirtFace_Execute(cst, tgt)        ; Caress Face
+    ElseIf choice == 17
+        FlirtBreast_Execute(cst, tgt)      ; Tease Breasts
+    ElseIf choice == 18
+        FlirtPussy_Execute(cst, tgt)       ; Tease Below
+    ElseIf choice == 19
+        SuckBreasts_Execute(cst, tgt)      ; Suck Breasts
+    ElseIf choice == 20
+        OralOnTarget_Execute(cst, tgt)     ; Suck Privates
+    ElseIf choice == 21
+        PlayPrivates_Execute(cst, tgt)     ; Play Privates
     EndIf
 EndFunction
 
