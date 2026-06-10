@@ -3,6 +3,15 @@
 ; so the quest script falls back to vanilla Message.Show() menus.
 Scriptname SNBakaUI
 
+; Read one paired-anim offset from Data/SKSE/Plugins/SNBaka_Offsets.ini (line "asKey.asAxis = value",
+; e.g. "struggle.x = -15"). asAxis is "x" (right+/left-), "y" (front+/back-), "z" (up+/down-) or "rot"
+; (victim facing). Returns afDefault if the file/key is missing — so with no .ini, the built-in default
+; (co-located + the action's facing) is used. Lower-cased on both sides.
+Float Function GetOffset(String asKey, String asAxis, Float afDefault) Global Native
+
+; Re-read SNBaka_Offsets.ini. Called on game load so edits to the file apply without restarting Skyrim.
+Function ReloadOffsets() Global Native
+
 ; Returns true when PrismaUI is loaded and the menu view is ready.
 Bool Function IsAvailable() Global Native
 

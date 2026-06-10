@@ -55,10 +55,15 @@ Bool  Property bNPCCanEscalate       = True  Auto
 ; ║    fFondleSep_*    Fondle privates    (attacker behind, victim facing away)║
 ; ║    fChokeHugSep_*  Back choke / hug   (attacker directly behind victim)    ║
 ; ╚══════════════════════════════════════════════════════════════════════════╝
-; Struggle (PlayPairedSequence) — gap with the victim standing ahead of the aggressor.
-Float Property fStruggleSep_NPC   = 22.0  Auto  ; NPC aggressor + NPC victim (30 -> 22: a bit closer)
-Float Property fStruggleSep_PCAtk = -15.0 Auto  ; player is the aggressor (negative pulls the victim forward into the grapple)
-Float Property fStruggleSep_PCVic = 10.0  Auto  ; player is the victim  (7 -> 10: "too close")
+; NOTE (2026-06-10 model change): every paired anim now uses _SetupPair — the attacker is the
+; origin (0,0,0), the NPC attacker teleports onto the victim, and the VICTIM is placed at
+; xLocal=RIGHT(+)/LEFT(-), yLocal=FRONT(+)/BACK(-). Most anims are CO-LOCATED (0,0) and the Babo
+; clip self-separates; tune any of them straight off the "[Baka] ... victim vs attacker(0,0,0)" log.
+; Struggle (PlayPairedSequence) — victim sits FRONT-LEFT of the attacker.
+Float Property fStruggleSep_NPC   = 20.0  Auto  ; NPC vs NPC      — how far in FRONT of the attacker
+Float Property fStruggleSep_PCAtk = 20.0  Auto  ; player attacker — how far in FRONT
+Float Property fStruggleSep_PCVic = 20.0  Auto  ; player victim   — how far in FRONT
+Float Property fStruggleLeft      = -15.0 Auto  ; all cases — how far to the attacker's LEFT (negative = left)
 ; Back-hug molest (PlayPairedLoopAnim) — how far BEHIND (negative) the attacker stands.
 Float Property fBackHugSep_NPC    = -50.0 Auto  ; NPC vs NPC (targets ~50 dist)
 Float Property fBackHugSep_PC     = -50.0 Auto  ; player involved (now -50)
@@ -248,6 +253,8 @@ Function Setup()
     _RegisterDecorators()
     RegisterForModEvent("AEL_GameEnd",       "OnAELGameEnd")
     RegisterForModEvent("SNBaka_MenuChoice", "OnSNBakaMenuChoice")
+    ; Re-read SNBaka_Offsets.ini so edits to the offsets file apply on game load (no restart needed).
+    SNBakaUI.ReloadOffsets()
     ; Auto-detect SexLab if the property was not assigned in CK.
     If !SexLab
         SexLab = Game.GetFormFromFile(0x000D62, "SexLab.esm") as SexLabFramework
@@ -605,13 +612,16 @@ EndEvent
 ;
 ; akA2 = victim (plays sResistA2), akA1 = aggressor (plays sResistA1).
 ; Returns True if the victim escaped. Sets _bQTEDefeated = True when attacker wins.
+; sHoldA1/sHoldA2 = the anim each actor should be holding during the QTE — re-asserted on a tick so a
+; PC-NPC actor can't drift off / stop animating mid-minigame (was the "NPC freezes during PC-NPC" bug).
 Bool Function _PollResist(Actor akA1, Actor akA2, Float duration, \
         String sResistA1 = "Babo_DefeatResist_A1_S1", \
-        String sResistA2 = "Babo_DefeatResist_A2_S1")
+        String sResistA2 = "Babo_DefeatResist_A2_S1", \
+        String sHoldA1 = "", String sHoldA2 = "")
     Bool a1IsPlayer = (akA1 == PlayerRef)
     Bool a2IsPlayer = (akA2 == PlayerRef)
     If (!a1IsPlayer && !a2IsPlayer) || !bResistEnabled
-        Return _WaitOrAbort(akA1, akA2, duration)
+        Return _HoldAnim(akA1, akA2, sHoldA1, sHoldA2, duration)
     EndIf
 
     ; Let the animation play for fQTEStartDelay seconds before the QTE overlay appears.
@@ -623,7 +633,7 @@ Bool Function _PollResist(Actor akA1, Actor akA2, Float duration, \
         EndIf
         If delay > 0.0
             Debug.Trace("[SNBaka] _PollResist: pre-QTE delay " + delay + "s")
-            If _WaitOrAbort(akA1, akA2, delay)
+            If _HoldAnim(akA1, akA2, sHoldA1, sHoldA2, delay)
                 Return False
             EndIf
             duration = duration - delay
@@ -641,14 +651,26 @@ Bool Function _PollResist(Actor akA1, Actor akA2, Float duration, \
     If !ael_ok
         Debug.Trace("[SNBaka] _PollResist: MakeGame failed — timed wait")
         UnregisterForModEvent("AEL_GameEnd")
-        Return _WaitOrAbort(akA1, akA2, duration)
+        Return _HoldAnim(akA1, akA2, sHoldA1, sHoldA2, duration)
     EndIf
 
     Float elapsed = 0.0
     Float tick    = 0.1
+    Float sinceRe = 0.0
     While elapsed < duration && !_bAELStruggleComplete && !_ShouldAbort(akA1, akA2)
         Utility.Wait(tick)
         elapsed += tick
+        sinceRe += tick
+        ; Re-assert the held pose ~every 2s so the actors don't drift off-anim during the QTE.
+        If sinceRe >= 2.0
+            sinceRe = 0.0
+            If sHoldA1 != ""
+                Debug.SendAnimationEvent(akA1, sHoldA1)
+            EndIf
+            If sHoldA2 != ""
+                Debug.SendAnimationEvent(akA2, sHoldA2)
+            EndIf
+        EndIf
     EndWhile
     ; If the Flash QTE is still running (poll timed out), force-close the menu so
     ; the player is not left stuck. Wait briefly in case the close triggers AEL_GameEnd.
@@ -720,6 +742,34 @@ Bool Function _WaitOrAbort(Actor akA1, Actor akA2, Float duration, Float tick = 
         If _ShouldAbort(akA1, akA2)
             Return True
         EndIf
+    EndWhile
+    Return False
+EndFunction
+
+; Holds both actors FROZEN on the given pose for `duration`: waits in ticks and RE-SENDS the pose
+; anim every tick, so a one-shot/short Babo clip that ends — or an idle/OAR replacer — can't make
+; them drift into another animation mid-scene. Re-sending the event an actor is already looping is a
+; no-op, but it snaps a drifted actor straight back. Returns True if the scene aborted.
+Bool Function _HoldAnim(Actor akA1, Actor akA2, String animA1, String animA2, Float duration, Float tick = 2.0)
+    Float elapsed = 0.0
+    While elapsed < duration
+        ; (Re-)assert the pose at the start of every tick, then wait. Sending an event an actor is
+        ; already in is a no-op; sending it to a drifted actor snaps them back onto the scene anim.
+        If animA1 != ""
+            Debug.SendAnimationEvent(akA1, animA1)
+        EndIf
+        If animA2 != ""
+            Debug.SendAnimationEvent(akA2, animA2)
+        EndIf
+        ; Clamp the final step to land EXACTLY on duration (no overshoot — that was the extra ~2s hold).
+        Float step = tick
+        If elapsed + step > duration
+            step = duration - elapsed
+        EndIf
+        If _WaitOrAbort(akA1, akA2, step)
+            Return True
+        EndIf
+        elapsed += step
     EndWhile
     Return False
 EndFunction
@@ -1101,115 +1151,10 @@ Function PlayPairedLoopAnim(Actor akA1, Actor akA2, \
         marker2 = akA2.PlaceAtMe(XMarkerBase, 1, False, False)
     EndIf
 
-    akA1.StopCombat()
-    akA1.StopCombatAlarm()
-    akA2.StopCombat()
-    akA2.StopCombatAlarm()
-    ; Stop any active translation so it doesn't fight the vehicle pin.
-    ; EvaluatePackage flushes combat AI immediately after StopCombat.
-    akA1.StopTranslation()
-    akA2.StopTranslation()
-    If akA1 != PlayerRef
-        akA1.SetVehicle(None)
-    EndIf
-    If akA2 != PlayerRef
-        akA2.SetVehicle(None)
-    EndIf
-    akA1.EvaluatePackage()
-    akA2.EvaluatePackage()
-    Utility.Wait(0.1)
-
-    Float refX   = akA2.GetPositionX()
-    Float refY   = akA2.GetPositionY()
-    Float refZ   = akA2.GetPositionZ()
-    Float angZ   = akA2.GetAngleZ()
-    Float worldX = refX + (yLocal * Math.Sin(angZ)) + (xLocal * Math.Cos(angZ))
-    Float worldY = refY + (yLocal * Math.Cos(angZ)) - (xLocal * Math.Sin(angZ))
-    Float a1AngZ = angZ + rotOffset
-    Debug.Trace("[SNBaka] Paired pos: A1=" + akA1.GetDisplayName() + " A2=" + akA2.GetDisplayName() + " xLocal=" + xLocal + " yLocal=" + yLocal + " angZ=" + angZ + " a1AngZ=" + a1AngZ + " marker1=" + marker1 + " marker2=" + marker2)
-
-    ; Disable character-to-character collision (NPC↔player) via the teammate flag in the
-    ; DLL, and suppress each NPC's AI with a DoNothing package so it holds the pose.
-    SNBakaUI.SetNoCollision(akA1, True)
-    SNBakaUI.SetNoCollision(akA2, True)
-    _HoldActorAI(akA1, True)
-    _HoldActorAI(akA2, True)
-    ; Pacify both NPCs so the victim can't draw a weapon / fight back mid-animation. Restored in cleanup.
-    _PacifyActor(akA1, True)
-    _PacifyActor(akA2, True)
-    ; Height-matching via Actor.SetScale was REMOVED — it caused runaway scaling (refActor's
-    ; scale was never restored, so actors snowballed bigger) and a CTD scare, for marginal gain.
-    ; Offsets are what looks best. If revisited, use a controlled NiOverride node-scale, not SetScale.
-
-    ; The player must never be teleported.  When the player is the initiator (A1), keep the
-    ; player fixed and place the TARGET (A2) relative to them instead of moving the player.
-    ; (When the player is A2 they are already the anchor and never move.)
-    Bool anchorOnPlayer = (akA1 == PlayerRef)
-    If anchorOnPlayer
-        a1AngZ      = akA1.GetAngleZ()
-        Float a2Ang = a1AngZ - rotOffset
-        Float offX  = -(yLocal * Math.Sin(a2Ang) + xLocal * Math.Cos(a2Ang))
-        Float offY  = -(yLocal * Math.Cos(a2Ang) - xLocal * Math.Sin(a2Ang))
-        akA2.MoveTo(akA1, offX, offY, 0.0, False)
-        Utility.Wait(0.2)
-        akA2.SetAngle(0.0, 0.0, a2Ang)
-        ; Altitude fix: snap A2 to the player-anchor's EXACT Z (slopes/stairs).
-        akA2.SetPosition(akA2.GetPositionX(), akA2.GetPositionY(), akA1.GetPositionZ())
-    EndIf
-
-    If bDisableCollision
-        ; Never ghost the PLAYER — ghosting removes floor collision and drops them through the
-        ; world. Ghost only the NPC(s); the player is pinned in place instead (SetDontMove below),
-        ; so the ghosted NPC overlaps without shoving the player.
-        If akA1 != PlayerRef
-            akA1.SetGhost(True)
-        EndIf
-        If akA2 != PlayerRef
-            akA2.SetGhost(True)
-        EndIf
-    EndIf
-    If akA2 != PlayerRef
-        akA2.SetRestrained(True)
-        akA2.SetDontMove(True)
-    EndIf
-    If marker1
-        marker1.MoveTo(akA2)
-        ; Pin BOTH actors incl. the player via SetVehicle (holds them fixed, no fall/shove, but
-        ; leaves the camera free — unlike SetDontMove). Marker is already at the actor (no teleport).
-        ; Vehicling the PLAYER lifts them ~2 units, so drop the marker 2 down to seat them on the floor.
-        If akA2 == PlayerRef
-            marker1.SetPosition(marker1.GetPositionX(), marker1.GetPositionY(), marker1.GetPositionZ() - 2.0 + _fPlayerZAdjust)
-        EndIf
-        akA2.SetVehicle(marker1)
-    EndIf
-
-    If anchorOnPlayer
-        akA1.SetAngle(0.0, 0.0, a1AngZ)
-    Else
-        akA1.MoveTo(akA2, worldX - refX, worldY - refY, 0.0, False)
-        Utility.Wait(0.3)
-        akA1.SetAngle(0.0, 0.0, a1AngZ)
-        ; Altitude fix: snap A1 to A2's EXACT Z so they align on slopes/stairs.
-        akA1.SetPosition(akA1.GetPositionX(), akA1.GetPositionY(), refZ)
-    EndIf
-    If marker2
-        marker2.MoveTo(akA1)
-        If akA1 == PlayerRef
-            marker2.SetPosition(marker2.GetPositionX(), marker2.GetPositionY(), marker2.GetPositionZ() - 2.0 + _fPlayerZAdjust)
-        EndIf
-        akA1.SetVehicle(marker2)   ; pin incl. player (SetVehicle, not SetDontMove — keeps the camera free)
-    EndIf
-    If akA1 != PlayerRef
-        akA1.SetRestrained(True)
-        akA1.SetDontMove(True)
-    EndIf
-    Debug.Trace("[SNBaka] Paired pins: A2 restrained=" + (akA2 != PlayerRef) + " vehicle=" + (marker1 != None) + " | A1 restrained=" + (akA1 != PlayerRef) + " vehicle=" + (marker2 != None))
-    ; DOM-style keep-alive: hold each actor pinned to its fixed point so they can't drift apart.
-    _HoldPinned(akA1)
-    _HoldPinned(akA2)
-
-    Debug.Trace("[SNBaka] LoopAnim: A1=" + akA1.GetDisplayName() + " A2=" + akA2.GetDisplayName() + " anim=" + startA1 + " resistable=" + bResistable + " a1IsPlayer=" + a1IsPlayer + " a2IsPlayer=" + a2IsPlayer)
-    _DebugPos(startA1, akA1, akA2, xLocal, yLocal)
+    ; New model: attacker is the origin, NPC attacker teleports onto the victim, victim placed at the
+    ; (xLocal=R/L, yLocal=F/B, rotOffset) offset; player never teleported; hard AI stop + pin. See _SetupPair.
+    ; sFn = the start-anim name; it is ALSO the SNBaka_Offsets.ini key for this anim's offsets.
+    _SetupPair(akA1, akA2, xLocal, yLocal, rotOffset, bDisableCollision, marker1, marker2, startA1)
     Debug.SendAnimationEvent(akA1, startA1)
     Debug.SendAnimationEvent(akA2, startA2)
     Bool aborted = _WaitOrAbort(akA1, akA2, startWait, 0.25)
@@ -1226,12 +1171,25 @@ Function PlayPairedLoopAnim(Actor akA1, Actor akA2, \
             Debug.SendAnimationEvent(akA2, loopA2)
         EndIf
 
+        ; The pose to RE-ASSERT during waits/QTE so an actor that drifts off snaps back: the loop anim
+        ; if there is one, else the START anim. Grab-hold (BackHugMolest) passes EMPTY loops — it's a
+        ; FNIS sequence that auto-chains from its START, so we must re-assert the START (re-sending the
+        ; loop event kicks it out). Without this, grab-hold had nothing to re-assert and the NPC froze.
+        String holdA1 = loopA1
+        If holdA1 == ""
+            holdA1 = startA1
+        EndIf
+        String holdA2 = loopA2
+        If holdA2 == ""
+            holdA2 = startA2
+        EndIf
+
         If bResistable && bResistEnabled && (a1IsPlayer || a2IsPlayer)
             SkyrimNetApi.RegisterEvent("baka_resist_start", \
                 akA2.GetDisplayName() + " struggles to break free from " + akA1.GetDisplayName() + ".", \
                 akA1, akA2)
 
-            Bool escaped = _PollResist(akA1, akA2, loopDur, sResistA1, sResistA2)
+            Bool escaped = _PollResist(akA1, akA2, loopDur, sResistA1, sResistA2, holdA1, holdA2)
             Debug.Trace("[SNBaka] LoopAnim: _PollResist done. escaped=" + escaped + " _bQTEDefeated=" + _bQTEDefeated)
 
             If escaped
@@ -1249,7 +1207,7 @@ Function PlayPairedLoopAnim(Actor akA1, Actor akA2, \
             ; the staged scenes — so it never just ends with no finish. Victim escapes -> break-free
             ; anim; attacker wins -> flag defeat so the caller runs the ground/escalation window.
             _bAELVictimEscaped = (Utility.RandomFloat(0.0, 99.9) < fNPCEscapeChance)
-            _WaitOrAbort(akA1, akA2, loopDur)
+            _HoldAnim(akA1, akA2, holdA1, holdA2, loopDur)
             If !_ShouldAbort(akA1, akA2)
                 If _bAELVictimEscaped
                     Debug.SendAnimationEvent(akA1, sStopA1)
@@ -1259,26 +1217,11 @@ Function PlayPairedLoopAnim(Actor akA1, Actor akA2, \
                     _bQTEDefeated = True   ; caller's If _bQTEDefeated -> DefeatGroundWindow
                 EndIf
             EndIf
-        ElseIf bRefreshLoop
-            ; Some loop anims (the SLAP forced-kiss victim loop) play one cycle then fall back to
-            ; idle, so the victim drops the pose before loopDur is up. Re-fire the loop events on a
-            ; tick so both actors stay in the pose for the whole duration.
-            Float held = 0.0
-            Bool stop = False
-            While held < loopDur && !stop
-                stop = _WaitOrAbort(akA1, akA2, 2.0)
-                held += 2.0
-                If !stop && held < loopDur
-                    If loopA1 != ""
-                        Debug.SendAnimationEvent(akA1, loopA1)
-                    EndIf
-                    If loopA2 != ""
-                        Debug.SendAnimationEvent(akA2, loopA2)
-                    EndIf
-                EndIf
-            EndWhile
         Else
-            _WaitOrAbort(akA1, akA2, loopDur)
+            ; Non-resistable: FREEZE both actors on the pose for the full duration — re-asserted each
+            ; tick so a short/one-shot clip or an idle replacer can't drop them out. (Re-assert is now
+            ; the default; the bRefreshLoop flag is kept only for call-site compatibility.)
+            _HoldAnim(akA1, akA2, holdA1, holdA2, loopDur)
         EndIf
     EndIf
 
@@ -1312,115 +1255,8 @@ Function PlayPairedSimpleAnim(Actor akA1, Actor akA2, \
         marker2 = akA2.PlaceAtMe(XMarkerBase, 1, False, False)
     EndIf
 
-    akA1.StopCombat()
-    akA1.StopCombatAlarm()
-    akA2.StopCombat()
-    akA2.StopCombatAlarm()
-    ; Stop any active translation so it doesn't fight the vehicle pin.
-    ; EvaluatePackage flushes combat AI immediately after StopCombat.
-    akA1.StopTranslation()
-    akA2.StopTranslation()
-    If akA1 != PlayerRef
-        akA1.SetVehicle(None)
-    EndIf
-    If akA2 != PlayerRef
-        akA2.SetVehicle(None)
-    EndIf
-    akA1.EvaluatePackage()
-    akA2.EvaluatePackage()
-    Utility.Wait(0.1)
-
-    Float refX   = akA2.GetPositionX()
-    Float refY   = akA2.GetPositionY()
-    Float refZ   = akA2.GetPositionZ()
-    Float angZ   = akA2.GetAngleZ()
-    Float worldX = refX + (yLocal * Math.Sin(angZ)) + (xLocal * Math.Cos(angZ))
-    Float worldY = refY + (yLocal * Math.Cos(angZ)) - (xLocal * Math.Sin(angZ))
-    Float a1AngZ = angZ + rotOffset
-    Debug.Trace("[SNBaka] Paired pos: A1=" + akA1.GetDisplayName() + " A2=" + akA2.GetDisplayName() + " xLocal=" + xLocal + " yLocal=" + yLocal + " angZ=" + angZ + " a1AngZ=" + a1AngZ + " marker1=" + marker1 + " marker2=" + marker2)
-
-    ; Disable character-to-character collision (NPC↔player) via the teammate flag in the
-    ; DLL, and suppress each NPC's AI with a DoNothing package so it holds the pose.
-    SNBakaUI.SetNoCollision(akA1, True)
-    SNBakaUI.SetNoCollision(akA2, True)
-    _HoldActorAI(akA1, True)
-    _HoldActorAI(akA2, True)
-    ; Pacify both NPCs so the victim can't draw a weapon / fight back mid-animation. Restored in cleanup.
-    _PacifyActor(akA1, True)
-    _PacifyActor(akA2, True)
-    ; Height-matching via Actor.SetScale was REMOVED — it caused runaway scaling (refActor's
-    ; scale was never restored, so actors snowballed bigger) and a CTD scare, for marginal gain.
-    ; Offsets are what looks best. If revisited, use a controlled NiOverride node-scale, not SetScale.
-
-    ; The player must never be teleported.  When the player is the initiator (A1), keep the
-    ; player fixed and place the TARGET (A2) relative to them instead of moving the player.
-    ; (When the player is A2 they are already the anchor and never move.)
-    Bool anchorOnPlayer = (akA1 == PlayerRef)
-    If anchorOnPlayer
-        a1AngZ      = akA1.GetAngleZ()
-        Float a2Ang = a1AngZ - rotOffset
-        Float offX  = -(yLocal * Math.Sin(a2Ang) + xLocal * Math.Cos(a2Ang))
-        Float offY  = -(yLocal * Math.Cos(a2Ang) - xLocal * Math.Sin(a2Ang))
-        akA2.MoveTo(akA1, offX, offY, 0.0, False)
-        Utility.Wait(0.2)
-        akA2.SetAngle(0.0, 0.0, a2Ang)
-        ; Altitude fix: snap A2 to the player-anchor's EXACT Z (slopes/stairs).
-        akA2.SetPosition(akA2.GetPositionX(), akA2.GetPositionY(), akA1.GetPositionZ())
-    EndIf
-
-    If bDisableCollision
-        ; Never ghost the PLAYER — ghosting removes floor collision and drops them through the
-        ; world. Ghost only the NPC(s); the player is pinned in place instead (SetDontMove below),
-        ; so the ghosted NPC overlaps without shoving the player.
-        If akA1 != PlayerRef
-            akA1.SetGhost(True)
-        EndIf
-        If akA2 != PlayerRef
-            akA2.SetGhost(True)
-        EndIf
-    EndIf
-    If akA2 != PlayerRef
-        akA2.SetRestrained(True)
-        akA2.SetDontMove(True)
-    EndIf
-    If marker1
-        marker1.MoveTo(akA2)
-        ; Pin BOTH actors incl. the player via SetVehicle (holds them fixed, no fall/shove, but
-        ; leaves the camera free — unlike SetDontMove). Marker is already at the actor (no teleport).
-        ; Vehicling the PLAYER lifts them ~2 units, so drop the marker 2 down to seat them on the floor.
-        If akA2 == PlayerRef
-            marker1.SetPosition(marker1.GetPositionX(), marker1.GetPositionY(), marker1.GetPositionZ() - 2.0 + _fPlayerZAdjust)
-        EndIf
-        akA2.SetVehicle(marker1)
-    EndIf
-
-    If anchorOnPlayer
-        akA1.SetAngle(0.0, 0.0, a1AngZ)
-    Else
-        akA1.MoveTo(akA2, worldX - refX, worldY - refY, 0.0, False)
-        Utility.Wait(0.3)
-        akA1.SetAngle(0.0, 0.0, a1AngZ)
-        ; Altitude fix: snap A1 to A2's EXACT Z so they align on slopes/stairs.
-        akA1.SetPosition(akA1.GetPositionX(), akA1.GetPositionY(), refZ)
-    EndIf
-    If marker2
-        marker2.MoveTo(akA1)
-        If akA1 == PlayerRef
-            marker2.SetPosition(marker2.GetPositionX(), marker2.GetPositionY(), marker2.GetPositionZ() - 2.0 + _fPlayerZAdjust)
-        EndIf
-        akA1.SetVehicle(marker2)   ; pin incl. player (SetVehicle, not SetDontMove — keeps the camera free)
-    EndIf
-    If akA1 != PlayerRef
-        akA1.SetRestrained(True)
-        akA1.SetDontMove(True)
-    EndIf
-    Debug.Trace("[SNBaka] Paired pins: A2 restrained=" + (akA2 != PlayerRef) + " vehicle=" + (marker1 != None) + " | A1 restrained=" + (akA1 != PlayerRef) + " vehicle=" + (marker2 != None))
-    ; DOM-style keep-alive: hold each actor pinned to its fixed point so they can't drift apart.
-    _HoldPinned(akA1)
-    _HoldPinned(akA2)
-
-    Debug.Trace("[SNBaka] SimpleAnim: A1=" + akA1.GetDisplayName() + " A2=" + akA2.GetDisplayName() + " anim=" + animA1 + " resistable=" + bResistable + " a1IsPlayer=" + a1IsPlayer + " a2IsPlayer=" + a2IsPlayer)
-    _DebugPos(animA1, akA1, akA2, xLocal, yLocal)
+    ; New attacker-anchored placement + hard AI stop + pin (see _SetupPair). animA1 = the SNBaka_Offsets.ini key.
+    _SetupPair(akA1, akA2, xLocal, yLocal, rotOffset, bDisableCollision, marker1, marker2, animA1)
     Debug.SendAnimationEvent(akA1, animA1)
     Debug.SendAnimationEvent(akA2, animA2)
 
@@ -1429,7 +1265,7 @@ Function PlayPairedSimpleAnim(Actor akA1, Actor akA2, \
             akA2.GetDisplayName() + " struggles to break free from " + akA1.GetDisplayName() + ".", \
             akA1, akA2)
 
-        Bool escaped = _PollResist(akA1, akA2, duration)
+        Bool escaped = _PollResist(akA1, akA2, duration, "Babo_DefeatResist_A1_S1", "Babo_DefeatResist_A2_S1", animA1, animA2)
         Debug.Trace("[SNBaka] SimpleAnim: _PollResist done. escaped=" + escaped + " _bQTEDefeated=" + _bQTEDefeated)
 
         If escaped
@@ -1443,15 +1279,15 @@ Function PlayPairedSimpleAnim(Actor akA1, Actor akA2, \
             _WaitOrAbort(akA1, akA2, duration * 0.5)
         EndIf
     ElseIf abMoanAtMid
-        ; Play the moan ~halfway through the anim (near the Babo impact), not after
-        ; the whole anim — so it lands close to the slap instead of long after it.
+        ; Play the moan ~halfway through (near the Babo impact); freeze the pose either side.
         Float half = duration * 0.5
-        If !_WaitOrAbort(akA1, akA2, half)
+        If !_HoldAnim(akA1, akA2, animA1, animA2, half)
             _PlaySpankMoanOnly(akA2)
-            _WaitOrAbort(akA1, akA2, duration - half)
+            _HoldAnim(akA1, akA2, animA1, animA2, duration - half)
         EndIf
     Else
-        _WaitOrAbort(akA1, akA2, duration)
+        ; Freeze both actors on the pose for the whole duration (re-asserted each tick).
+        _HoldAnim(akA1, akA2, animA1, animA2, duration)
     EndIf
 
     _CleanupPair(akA1, akA2, marker1, marker2, a1IsPlayer || a2IsPlayer, _bQTEDefeated)
@@ -1487,115 +1323,8 @@ Function PlayPairedSequence(Actor akA1, Actor akA2, \
         marker2 = akA2.PlaceAtMe(XMarkerBase, 1, False, False)
     EndIf
 
-    akA1.StopCombat()
-    akA1.StopCombatAlarm()
-    akA2.StopCombat()
-    akA2.StopCombatAlarm()
-    ; Stop any active translation so it doesn't fight the vehicle pin.
-    ; EvaluatePackage flushes combat AI immediately after StopCombat.
-    akA1.StopTranslation()
-    akA2.StopTranslation()
-    If akA1 != PlayerRef
-        akA1.SetVehicle(None)
-    EndIf
-    If akA2 != PlayerRef
-        akA2.SetVehicle(None)
-    EndIf
-    akA1.EvaluatePackage()
-    akA2.EvaluatePackage()
-    Utility.Wait(0.1)
-
-    Float refX   = akA2.GetPositionX()
-    Float refY   = akA2.GetPositionY()
-    Float refZ   = akA2.GetPositionZ()
-    Float angZ   = akA2.GetAngleZ()
-    Float worldX = refX + (yLocal * Math.Sin(angZ)) + (xLocal * Math.Cos(angZ))
-    Float worldY = refY + (yLocal * Math.Cos(angZ)) - (xLocal * Math.Sin(angZ))
-    Float a1AngZ = angZ + rotOffset
-    Debug.Trace("[SNBaka] Paired pos: A1=" + akA1.GetDisplayName() + " A2=" + akA2.GetDisplayName() + " xLocal=" + xLocal + " yLocal=" + yLocal + " angZ=" + angZ + " a1AngZ=" + a1AngZ + " marker1=" + marker1 + " marker2=" + marker2)
-
-    ; Disable character-to-character collision (NPC↔player) via the teammate flag in the
-    ; DLL, and suppress each NPC's AI with a DoNothing package so it holds the pose.
-    SNBakaUI.SetNoCollision(akA1, True)
-    SNBakaUI.SetNoCollision(akA2, True)
-    _HoldActorAI(akA1, True)
-    _HoldActorAI(akA2, True)
-    ; Pacify both NPCs so the victim can't draw a weapon / fight back mid-animation. Restored in cleanup.
-    _PacifyActor(akA1, True)
-    _PacifyActor(akA2, True)
-    ; Height-matching via Actor.SetScale was REMOVED — it caused runaway scaling (refActor's
-    ; scale was never restored, so actors snowballed bigger) and a CTD scare, for marginal gain.
-    ; Offsets are what looks best. If revisited, use a controlled NiOverride node-scale, not SetScale.
-
-    ; The player must never be teleported.  When the player is the initiator (A1), keep the
-    ; player fixed and place the TARGET (A2) relative to them instead of moving the player.
-    ; (When the player is A2 they are already the anchor and never move.)
-    Bool anchorOnPlayer = (akA1 == PlayerRef)
-    If anchorOnPlayer
-        a1AngZ      = akA1.GetAngleZ()
-        Float a2Ang = a1AngZ - rotOffset
-        Float offX  = -(yLocal * Math.Sin(a2Ang) + xLocal * Math.Cos(a2Ang))
-        Float offY  = -(yLocal * Math.Cos(a2Ang) - xLocal * Math.Sin(a2Ang))
-        akA2.MoveTo(akA1, offX, offY, 0.0, False)
-        Utility.Wait(0.2)
-        akA2.SetAngle(0.0, 0.0, a2Ang)
-        ; Altitude fix: snap A2 to the player-anchor's EXACT Z (slopes/stairs).
-        akA2.SetPosition(akA2.GetPositionX(), akA2.GetPositionY(), akA1.GetPositionZ())
-    EndIf
-
-    If bDisableCollision
-        ; Never ghost the PLAYER — ghosting removes floor collision and drops them through the
-        ; world. Ghost only the NPC(s); the player is pinned in place instead (SetDontMove below),
-        ; so the ghosted NPC overlaps without shoving the player.
-        If akA1 != PlayerRef
-            akA1.SetGhost(True)
-        EndIf
-        If akA2 != PlayerRef
-            akA2.SetGhost(True)
-        EndIf
-    EndIf
-    If akA2 != PlayerRef
-        akA2.SetRestrained(True)
-        akA2.SetDontMove(True)
-    EndIf
-    If marker1
-        marker1.MoveTo(akA2)
-        ; Pin BOTH actors incl. the player via SetVehicle (holds them fixed, no fall/shove, but
-        ; leaves the camera free — unlike SetDontMove). Marker is already at the actor (no teleport).
-        ; Vehicling the PLAYER lifts them ~2 units, so drop the marker 2 down to seat them on the floor.
-        If akA2 == PlayerRef
-            marker1.SetPosition(marker1.GetPositionX(), marker1.GetPositionY(), marker1.GetPositionZ() - 2.0 + _fPlayerZAdjust)
-        EndIf
-        akA2.SetVehicle(marker1)
-    EndIf
-
-    If anchorOnPlayer
-        akA1.SetAngle(0.0, 0.0, a1AngZ)
-    Else
-        akA1.MoveTo(akA2, worldX - refX, worldY - refY, 0.0, False)
-        Utility.Wait(0.3)
-        akA1.SetAngle(0.0, 0.0, a1AngZ)
-        ; Altitude fix: snap A1 to A2's EXACT Z so they align on slopes/stairs.
-        akA1.SetPosition(akA1.GetPositionX(), akA1.GetPositionY(), refZ)
-    EndIf
-    If marker2
-        marker2.MoveTo(akA1)
-        If akA1 == PlayerRef
-            marker2.SetPosition(marker2.GetPositionX(), marker2.GetPositionY(), marker2.GetPositionZ() - 2.0 + _fPlayerZAdjust)
-        EndIf
-        akA1.SetVehicle(marker2)   ; pin incl. player (SetVehicle, not SetDontMove — keeps the camera free)
-    EndIf
-    If akA1 != PlayerRef
-        akA1.SetRestrained(True)
-        akA1.SetDontMove(True)
-    EndIf
-    Debug.Trace("[SNBaka] Paired pins: A2 restrained=" + (akA2 != PlayerRef) + " vehicle=" + (marker1 != None) + " | A1 restrained=" + (akA1 != PlayerRef) + " vehicle=" + (marker2 != None))
-    ; DOM-style keep-alive: hold each actor pinned to its fixed point so they can't drift apart.
-    _HoldPinned(akA1)
-    _HoldPinned(akA2)
-
-    Debug.Trace("[SNBaka] Sequence: A1=" + akA1.GetDisplayName() + " A2=" + akA2.GetDisplayName() + " anim0=" + animsA1[0] + " resistable=" + bResistable + " a1IsPlayer=" + a1IsPlayer + " a2IsPlayer=" + a2IsPlayer)
-    _DebugPos(animsA1[0], akA1, akA2, xLocal, yLocal)
+    ; New attacker-anchored placement + hard AI stop + pin (see _SetupPair). animsA1[0] = the SNBaka_Offsets.ini key.
+    _SetupPair(akA1, akA2, xLocal, yLocal, rotOffset, bDisableCollision, marker1, marker2, animsA1[0])
     If bResistable && bResistEnabled && (a1IsPlayer || a2IsPlayer)
         SkyrimNetApi.RegisterEvent("baka_resist_start", \
             akA2.GetDisplayName() + " struggles to break free from " + akA1.GetDisplayName() + ".", \
@@ -1631,6 +1360,7 @@ Function PlayPairedSequence(Actor akA1, Actor akA2, \
         If ael_ok
             Float elapsed = 0.0
             Float stageElapsed = 0.0
+            Float sinceRe = 0.0
             Float tick = 0.1
             Float maxWait = stageTimer * animsA1.Length + 10.0
             Int stageIdx = 0
@@ -1638,15 +1368,22 @@ Function PlayPairedSequence(Actor akA1, Actor akA2, \
                 Utility.Wait(tick)
                 elapsed      += tick
                 stageElapsed += tick
+                sinceRe      += tick
                 If _ShouldAbort(akA1, akA2)
                     aborted = True
                 EndIf
                 If !aborted && stageElapsed >= stageTimer && stageIdx < animsA1.Length - 1
                     stageIdx += 1
                     stageElapsed = 0.0
+                    sinceRe = 0.0
                     Debug.SendAnimationEvent(akA1, animsA1[stageIdx])
                     Debug.SendAnimationEvent(akA2, animsA2[stageIdx])
                     Debug.Trace("[SNBaka] PlayPairedSequence: stage -> " + stageIdx)
+                ElseIf !aborted && sinceRe >= 2.0
+                    ; Re-assert the current stage ~every 2s so PC-NPC actors can't drift/freeze mid-QTE.
+                    sinceRe = 0.0
+                    Debug.SendAnimationEvent(akA1, animsA1[stageIdx])
+                    Debug.SendAnimationEvent(akA2, animsA2[stageIdx])
                 EndIf
             EndWhile
             ; If poll timed out while Flash QTE is still open, force-close the menu.
@@ -1708,15 +1445,15 @@ Function PlayPairedSequence(Actor akA1, Actor akA2, \
         UnregisterForModEvent("AEL_GameEnd")
 
         If escaped
-            ; Play the anim's OWN final stage (its break-free), not a generic clip, and hold ~3.5s
-            ; so it reads — fixes the player-escape "anim just breaks / last stage never plays".
+            ; Play the anim's OWN final stage (its break-free), then free the actors quickly — 1.5s is
+            ; enough for the break-free to read; 3.5 left them frozen ~2s too long after it ended.
             Int li2 = animsA1.Length - 1
             Debug.SendAnimationEvent(akA1, animsA1[li2])
             Debug.SendAnimationEvent(akA2, animsA2[li2])
             SkyrimNetApi.RegisterEvent("baka_resist_success", \
                 akA2.GetDisplayName() + " breaks free from " + akA1.GetDisplayName() + ".", \
                 akA1, akA2)
-            _WaitOrAbort(akA1, akA2, 3.5)
+            _WaitOrAbort(akA1, akA2, 1.5)
         EndIf
     Else
         ; Normal sequence — NPC-NPC (no QTE).
@@ -1724,9 +1461,8 @@ Function PlayPairedSequence(Actor akA1, Actor akA2, \
             ; Non-resistable paired sequence: just play every stage straight through.
             Int i = 0
             While i < animsA1.Length && !_ShouldAbort(akA1, akA2)
-                Debug.SendAnimationEvent(akA1, animsA1[i])
-                Debug.SendAnimationEvent(akA2, animsA2[i])
-                _WaitOrAbort(akA1, akA2, stageTimer)
+                ; Freeze the actors on this stage for its whole duration (re-asserted each tick).
+                _HoldAnim(akA1, akA2, animsA1[i], animsA2[i], stageTimer)
                 i += 1
             EndWhile
         Else
@@ -1744,26 +1480,20 @@ Function PlayPairedSequence(Actor akA1, Actor akA2, \
             ; Shared middle stages 0 .. penult-1 (stop before the deciding stage).
             Int i = 0
             While i < penult && !_ShouldAbort(akA1, akA2)
-                Debug.SendAnimationEvent(akA1, animsA1[i])
-                Debug.SendAnimationEvent(akA2, animsA2[i])
-                _WaitOrAbort(akA1, akA2, fNPCStageTime)
+                _HoldAnim(akA1, akA2, animsA1[i], animsA2[i], fNPCStageTime)
                 i += 1
             EndWhile
             If !_ShouldAbort(akA1, akA2)
                 If npcEscaped && animsA1.Length > 1
                     ; Victim wins: skip the victor stage, play the break-free LAST stage directly.
-                    Debug.SendAnimationEvent(akA1, animsA1[lastIdx])
-                    Debug.SendAnimationEvent(akA2, animsA2[lastIdx])
-                    _WaitOrAbort(akA1, akA2, fNPCStageTime)
+                    _HoldAnim(akA1, akA2, animsA1[lastIdx], animsA2[lastIdx], fNPCStageTime)
                     _bAELVictimEscaped = True
                     SkyrimNetApi.RegisterEvent("baka_resist_success", \
                         akA2.GetDisplayName() + " breaks free from " + akA1.GetDisplayName() + ".", \
                         akA1, akA2)
                 Else
                     ; Attacker wins: play the LAST-MINUS-ONE (victor) stage, then flag defeat.
-                    Debug.SendAnimationEvent(akA1, animsA1[penult])
-                    Debug.SendAnimationEvent(akA2, animsA2[penult])
-                    _WaitOrAbort(akA1, akA2, fNPCStageTime)
+                    _HoldAnim(akA1, akA2, animsA1[penult], animsA2[penult], fNPCStageTime)
                     _bQTEDefeated = True   ; -> DefeatGroundWindow / escalation
                 EndIf
             EndIf
@@ -2228,7 +1958,7 @@ Function _DoEscalation(Actor akA1, Actor akA2)
     akA1.SetAngle(0.0, 0.0, angZ + 180.0)   ; attacker faces the victim (was parallel/same-facing)
     akA2.SetAngle(0.0, 0.0, angZ)
     Debug.Trace("[SNBaka] _DoEscalation: A1 snapped to (" + akA1.GetPositionX() + "," + akA1.GetPositionY() + ") angle=" + (angZ + 180.0))
-    _DebugPos("Escalation (Babo_DefeatResist)", akA1, akA2, 0.0, dist)
+    _LogPair("Escalation", akA1, akA2, 0.0, dist, 180.0, angZ + 180.0)
 
     ; Roles: A1 (attacker) plays A2_S1 (crouching straddler), A2 (victim) plays A1_S1 (downed).
     Debug.SendAnimationEvent(akA1, "Babo_DefeatResist_A2_S1")
@@ -2460,10 +2190,26 @@ EndFunction
 ; ║   "baka_intimate"= consensual (warm/playful expected)                      ║
 ; ║  Always originator = aggressor, target = victim.                          ║
 ; ╚══════════════════════════════════════════════════════════════════════════╝
+; Roleplay direction appended to every live scene cue: restate WHO is doing it to WHOM, and describe
+; each actor's likely emotional state so the LLM voices whichever one it's generating correctly (the
+; victim reacts, the aggressor stays in character). Reads in their NAMES so it's unambiguous.
+String Function _RoleplayHint(String sType, Actor akAtk, Actor akVic)
+    String a = akAtk.GetDisplayName()
+    String v = akVic.GetDisplayName()
+    If sType == "baka_forced"
+        Return " " + a + " is the aggressor forcing this on " + v + ", who is held and cannot get away. " \
+            + v + " would likely be anxious, panicking, frightened, angry, or pleading — whatever fits " + v \
+            + "'s personality and this moment; " + a + " is in control and acting with intent. Speak and react in character as whichever of them is talking."
+    ElseIf sType == "baka_intimate"
+        Return " " + a + " is being affectionate toward " + v + ". " + v + " might respond shyly, warmly, with surprise, flustered, or playfully — depending on how close the two of them are. React in character."
+    EndIf
+    Return ""
+EndFunction
+
 Function _CueOngoing(String sType, String sDesc, Actor akAtk, Actor akVic, Float afSeconds = 25.0)
     If akAtk && akVic
         SkyrimNetApi.RegisterShortLivedEvent("baka_scene_" + akAtk.GetFormID(), \
-            sType, sDesc, "", (afSeconds * 1000.0) as Int, akAtk, akVic)
+            sType, sDesc + _RoleplayHint(sType, akAtk, akVic), "", (afSeconds * 1000.0) as Int, akAtk, akVic)
         If bDebugLog
             ; RecordAnimation (called just before this) stored the formal interaction name on the aggressor.
             String act = StorageUtil.GetStringValue(akAtk, "SNBaka.LastAnim", "?")
@@ -2498,16 +2244,151 @@ EndFunction
 
 ; Prints where a paired scene actually placed the actors (on-screen + log), so positioning can be
 ; reported precisely. Gated by bDebugPositions. asAnim = the playing event; afX/afY = requested offsets.
-Function _DebugPos(String asAnim, Actor akA1, Actor akA2, Float afX, Float afY)
-    If !bDebugPositions || !akA1 || !akA2
+; Clear paired-anim position log. Reports the VICTIM's offset relative to the ATTACKER, with the
+; attacker as the origin (0,0,0) facing forward: L/R (left-right), F/B (front-back), U (up), and the
+; straight-line distance — plus the offset we ASKED for. This is the only positional log you need to
+; tune from: e.g. "R12 F40 U-3 dist 42" = victim is 12 right, 40 in front, 3 below the attacker.
+Function _LogPair(String sFn, Actor akAtk, Actor akVic, Float wantX, Float wantY, Float rotOffset, Float aAng)
+    If !bDebugPositions || !akAtk || !akVic
         Return
     EndIf
-    Float dist = akA1.GetDistance(akA2)
-    Debug.Notification("[Baka] " + asAnim + "  off(x=" + afX + " y=" + afY + ")  dist=" + (dist as Int))
-    Debug.Trace("[SNBaka][POS] anim=" + asAnim + " offX=" + afX + " offY=" + afY \
-        + " | A1=" + akA1.GetDisplayName() + " (" + akA1.GetPositionX() + ", " + akA1.GetPositionY() + ", " + akA1.GetPositionZ() + ")" \
-        + " | A2=" + akA2.GetDisplayName() + " (" + akA2.GetPositionX() + ", " + akA2.GetPositionY() + ", " + akA2.GetPositionZ() + ")" \
-        + " | dist=" + dist)
+    Float wdx = akVic.GetPositionX() - akAtk.GetPositionX()
+    Float wdy = akVic.GetPositionY() - akAtk.GetPositionY()
+    Int   dz  = (akVic.GetPositionZ() - akAtk.GetPositionZ()) as Int
+    ; rotate the world delta back into the attacker's local frame
+    Float lr  = (wdx * Math.Cos(aAng)) - (wdy * Math.Sin(aAng))   ; +right / -left
+    Float fb  = (wdx * Math.Sin(aAng)) + (wdy * Math.Cos(aAng))   ; +front / -back
+    Int   dist = akAtk.GetDistance(akVic) as Int
+    String sLR = "R"
+    If lr < 0.0
+        sLR = "L"
+    EndIf
+    String sFB = "F"
+    If fb < 0.0
+        sFB = "B"
+    EndIf
+    String msg = sFn + ": victim vs attacker(0,0,0) = " \
+        + sLR + (Math.Abs(lr) as Int) + " " + sFB + (Math.Abs(fb) as Int) + " U" + dz \
+        + "  dist=" + dist + " rot=" + (rotOffset as Int) \
+        + "  [asked R/L=" + (wantX as Int) + " F/B=" + (wantY as Int) + "]"
+    Debug.Notification("[Baka] " + msg)
+    Debug.Trace("[SNBaka][POS] " + msg + "  aAng=" + (aAng as Int) \
+        + "  ATK=" + akAtk.GetDisplayName() + "  VIC=" + akVic.GetDisplayName())
+EndFunction
+
+; ── Shared paired-anim setup ──────────────────────────────────────────────────────────────────
+; ONE model for every paired animation:
+;   * The ATTACKER (akAtk) is the origin (0,0,0). An NPC attacker is TELEPORTED onto the victim, so
+;     the scene always happens where the victim was standing.
+;   * The VICTIM (akVic) is then placed relative to the attacker:
+;         xLocal = victim RIGHT(+) / LEFT(-)      yLocal = victim FRONT(+) / BACK(-)
+;         rotOffset = victim facing minus attacker facing (180 = facing each other)
+;   * The PLAYER is NEVER teleported: as the attacker they stay put and the victim comes to them; as
+;     the victim they stay put and the attacker is placed so the victim still lands at the offset.
+;   * Hard AI stop: DoNothing package + pacify + restrain + SetDontMove + ghost + vehicle-pin, so no
+;     other mod / idle replacer can animate them until the scene ends (undone in _CleanupPair).
+; mk1/mk2 are pre-placed XMarkers used to vehicle-pin the attacker/victim. sFn = label for the log.
+Function _SetupPair(Actor akAtk, Actor akVic, Float xLocal, Float yLocal, Float rotOffset, \
+        Bool bDisableCollision, ObjectReference mk1, ObjectReference mk2, String sFn)
+    Bool atkPlayer = (akAtk == PlayerRef)
+    Bool vicPlayer = (akVic == PlayerRef)
+
+    akAtk.StopCombat()
+    akAtk.StopCombatAlarm()
+    akVic.StopCombat()
+    akVic.StopCombatAlarm()
+    akAtk.StopTranslation()
+    akVic.StopTranslation()
+    If !atkPlayer
+        akAtk.SetVehicle(None)
+    EndIf
+    If !vicPlayer
+        akVic.SetVehicle(None)
+    EndIf
+    akAtk.EvaluatePackage()
+    akVic.EvaluatePackage()
+    Utility.Wait(0.1)
+
+    ; HARD AI STOP first, so nothing else drives them while we position.
+    SNBakaUI.SetNoCollision(akAtk, True)
+    SNBakaUI.SetNoCollision(akVic, True)
+    _HoldActorAI(akAtk, True)
+    _HoldActorAI(akVic, True)
+    _PacifyActor(akAtk, True)
+    _PacifyActor(akVic, True)
+
+    ; --- editable offsets (SNBaka_Offsets.ini, key = sFn). Missing file/key falls back to the passed
+    ; defaults, so no .ini == co-located + the action's own facing. x=R/L, y=F/B, z=up/down, rot=facing. ---
+    Float ox   = SNBakaUI.GetOffset(sFn, "x",   xLocal)
+    Float oy   = SNBakaUI.GetOffset(sFn, "y",   yLocal)
+    Float oz   = SNBakaUI.GetOffset(sFn, "z",   0.0)
+    Float orot = SNBakaUI.GetOffset(sFn, "rot", rotOffset)
+
+    ; --- anchor on the ATTACKER ---
+    Float aAng
+    If atkPlayer
+        aAng = akAtk.GetAngleZ()                       ; player attacker stays put
+    ElseIf !vicPlayer
+        akAtk.MoveTo(akVic)                            ; NPC attacker teleports ONTO the victim
+        Utility.Wait(0.2)
+        aAng = akAtk.GetAngleZ()
+    Else
+        aAng = akVic.GetAngleZ() - orot                ; player victim: keep the player's facing
+    EndIf
+    Float vAng = aAng + orot
+    Float wdx  = (ox * Math.Cos(aAng)) + (oy * Math.Sin(aAng))
+    Float wdy  = (oy * Math.Cos(aAng)) - (ox * Math.Sin(aAng))
+
+    If vicPlayer
+        ; never move the player — place the ATTACKER at (victim - offset) so victim ends at +offset.
+        ; z: victim is +oz above the attacker, so the attacker sits oz BELOW the (fixed) player.
+        akAtk.MoveTo(akVic, -wdx, -wdy, 0.0, False)
+        Utility.Wait(0.2)
+        akAtk.SetAngle(0.0, 0.0, aAng)
+        akAtk.SetPosition(akAtk.GetPositionX(), akAtk.GetPositionY(), akVic.GetPositionZ() - oz)
+    Else
+        akAtk.SetAngle(0.0, 0.0, aAng)
+        Float az = akAtk.GetPositionZ()
+        akVic.MoveTo(akAtk, wdx, wdy, 0.0, False)       ; victim to attacker + offset
+        Utility.Wait(0.2)
+        akVic.SetAngle(0.0, 0.0, vAng)
+        akVic.SetPosition(akVic.GetPositionX(), akVic.GetPositionY(), az + oz)   ; attacker Z (+ z offset)
+    EndIf
+
+    ; --- ghost (never player), restrain (never player), vehicle-pin BOTH ---
+    If bDisableCollision
+        If !atkPlayer
+            akAtk.SetGhost(True)
+        EndIf
+        If !vicPlayer
+            akVic.SetGhost(True)
+        EndIf
+    EndIf
+    If !atkPlayer
+        akAtk.SetRestrained(True)
+        akAtk.SetDontMove(True)
+    EndIf
+    If !vicPlayer
+        akVic.SetRestrained(True)
+        akVic.SetDontMove(True)
+    EndIf
+    If mk1
+        mk1.MoveTo(akAtk)
+        If atkPlayer
+            mk1.SetPosition(mk1.GetPositionX(), mk1.GetPositionY(), mk1.GetPositionZ() - 2.0 + _fPlayerZAdjust)
+        EndIf
+        akAtk.SetVehicle(mk1)
+    EndIf
+    If mk2
+        mk2.MoveTo(akVic)
+        If vicPlayer
+            mk2.SetPosition(mk2.GetPositionX(), mk2.GetPositionY(), mk2.GetPositionZ() - 2.0 + _fPlayerZAdjust)
+        EndIf
+        akVic.SetVehicle(mk2)
+    EndIf
+    _HoldPinned(akAtk)
+    _HoldPinned(akVic)
+    _LogPair(sFn, akAtk, akVic, ox, oy, orot, aAng)
 EndFunction
 
 ; --- BackHug ---
@@ -2527,7 +2408,7 @@ Function BackHug_Execute(Actor akInitiator, Actor akTarget)
         akInitiator, akTarget)
 
     PlayPairedLoopAnim(akInitiator, akTarget, \
-        0.0, -50.0, 0.0, \
+        0.0, 0.0, 0.0, \
         "BaboBackHugStartM",    "BaboBackHugStartF", \
         "BaboBackHugLoopM",     "BaboBackHugLoopF", \
         2.0, fHugLoopDuration)
@@ -2568,7 +2449,7 @@ Function BackHugMolest_Execute(Actor akInitiator, Actor akTarget)
     ; actor out of the running sequence (back to default) — which is why it failed every time.
     ; So pass empty loop names: only Start fires, and the cyclic Loop plays on its own.
     PlayPairedLoopAnim(akInitiator, akTarget, \
-        4.0, yMolest, 0.0, \
+        0.0, 0.0, 0.0, \
         "BaboBackHugMolestStartM",  "BaboBackHugMolestStartF", \
         "", "", \
         2.5, fMolestLoopDuration, True)
@@ -2602,7 +2483,7 @@ Function FrontHug_Execute(Actor akInitiator, Actor akTarget)
         akInitiator, akTarget)
 
     PlayPairedLoopAnim(akInitiator, akTarget, \
-        0.0, 50.0, 180.0, \
+        0.0, 0.0, 180.0, \
         "BaboFrontHugStartM",   "BaboFrontHugStartF", \
         "BaboFrontHugLoopM",    "BaboFrontHugLoopF", \
         2.0, fHugLoopDuration)
@@ -2645,7 +2526,7 @@ Function KissLove_Execute(Actor akInitiator, Actor akTarget)
         a2[1] = "BaboKissLoveS02_A2"
     EndIf
 
-    PlayPairedSequence(akInitiator, akTarget, 0.0, 5.0, 180.0, a1, a2, fKissLoopDuration)
+    PlayPairedSequence(akInitiator, akTarget, 0.0, 0.0, 180.0, a1, a2, fKissLoopDuration)
 
     _CueOutcome("baka_intimate", \
         akInitiator.GetDisplayName() + " and " + akTarget.GetDisplayName() + " shared a kiss.", \
@@ -2683,7 +2564,7 @@ Function ForcedKiss_Execute(Actor akInitiator, Actor akTarget)
     ; bRefreshLoop=True: the SLAP kiss loop exits after one cycle, so re-fire it on a tick to keep
     ; the victim in the pose for the full duration (defaults spelled out to reach the trailing flag).
     PlayPairedLoopAnim(akInitiator, akTarget, \
-        xKiss, 0.0, 180.0, \
+        0.0, 0.0, 180.0, \
         "SLAPForcedKiss01_A2_S01",    "SLAPForcedKiss01_A1_S01", \
         "SLAPForcedKiss01_A2_Loop",   "SLAPForcedKiss01_A1_Loop", \
         2.0, fKissLoopDuration, \
@@ -2718,7 +2599,7 @@ Function TouchBreasts_Execute(Actor akInitiator, Actor akTarget)
 
     _StartTears(akTarget)
     PlayPairedSimpleAnim(akInitiator, akTarget, \
-        0.0, 50.0, 180.0, \
+        0.0, 0.0, 180.0, \
         "Babo_TouchingBreasts_A02", "Babo_TouchingBreasts_A01", \
         fTouchLoopDuration)
 
@@ -2748,7 +2629,7 @@ Function SuckBreasts_Execute(Actor akInitiator, Actor akTarget)
 
     _StartTears(akTarget)
     PlayPairedSimpleAnim(akInitiator, akTarget, \
-        -10.0, 45.0, 180.0, \
+        0.0, 0.0, 180.0, \
         "Babo_SuckingBreasts_A02", "Babo_SuckingBreasts_A01", \
         fTouchLoopDuration)
 
@@ -2779,7 +2660,7 @@ Function ExaminePrivates_Execute(Actor akInitiator, Actor akTarget)
     _StartTears(akTarget)
 
     PlayPairedSimpleAnim(akInitiator, akTarget, \
-        -10.0, 45.0, 180.0, \
+        0.0, 0.0, 180.0, \
         "BaboExaminePussyA2", "BaboExaminePussyA1", \
         fTouchLoopDuration)
 
@@ -2815,7 +2696,7 @@ Function PlayPrivates_Execute(Actor akInitiator, Actor akTarget)
     _StartTears(akTarget)
 
     PlayPairedSimpleAnim(akInitiator, akTarget, \
-        -30.0, 20.0, 180.0, \
+        0.0, 0.0, 180.0, \
         "BaboPlayingPussyA2", "BaboPlayingPussyA1", \
         fTouchLoopDuration, True)
 
@@ -2850,7 +2731,7 @@ Function OralOnTarget_Execute(Actor akInitiator, Actor akTarget)
 
     _StartTears(akTarget)
     PlayPairedSimpleAnim(akInitiator, akTarget, \
-        0.0, 50.0, 180.0, \
+        0.0, 0.0, 180.0, \
         "BaboSuckingPussyA02", "BaboSuckingPussyA01", \
         fTouchLoopDuration)
 
@@ -2882,7 +2763,7 @@ Function Spanking_Execute(Actor akInitiator, Actor akTarget)
     ; No slap here — the Babo spanking anim plays its own impact, so ours would
     ; double it.  abMoanAtMid=True plays the MOAN ~halfway through (near the impact).
     PlayPairedSimpleAnim(akInitiator, akTarget, \
-        -60.0, -15.0, 0.0, \
+        0.0, 0.0, 0.0, \
         "BaboSpankingM", "BaboSpankingF", \
         1.0, False, False, True)
 
@@ -2917,7 +2798,7 @@ Function WombHit_Execute(Actor akInitiator, Actor akTarget)
     _bQTEDefeated = True
     ; Sound plays at impact moment (when loop phase starts), not before wind-up.
     PlayPairedLoopAnim(akInitiator, akTarget, \
-        13.0, 21.0, 180.0, \
+        0.0, 0.0, 180.0, \
         "BaboWombHitM", "BaboWombHit", \
         "BaboWombHitM", "BaboWombHitLoop", \
         1.0, 0.5, False, \
@@ -2960,7 +2841,7 @@ Function Flirt_Execute(Actor akInitiator, Actor akTarget)
     If akInitiator == PlayerRef || akTarget == PlayerRef
         xFlirt = fFlirtSep_PC
     EndIf
-    PlayPairedSequence(akInitiator, akTarget, xFlirt, 0.0, 0.0, a1, a2, fTouchLoopDuration)
+    PlayPairedSequence(akInitiator, akTarget, 0.0, 0.0, 0.0, a1, a2, fTouchLoopDuration)
     ; Mark that this actor flirted — unlocks the flirt escalations (face/breast/pussy) for a while.
     StorageUtil.SetFloatValue(akInitiator, "SNBaka.LastFlirt", Utility.GetCurrentGameTime())
 
@@ -3046,7 +2927,7 @@ Function CapturedInspect_Execute(Actor akInitiator, Actor akTarget)
     a2[1] = "Babo_CapturedBoob_A1"
     a2[2] = "Babo_CapturedPussy_A1"
 
-    PlayPairedSequence(akInitiator, akTarget, 0.0, 10.0, 180.0, a1, a2, fSequenceStageTimer, True)
+    PlayPairedSequence(akInitiator, akTarget, 0.0, 0.0, 180.0, a1, a2, fSequenceStageTimer, True)
 
     If _bQTEDefeated
         Debug.Trace("[SNBaka] Execute: QTE defeated — calling DefeatGroundWindow. attacker=" + akInitiator.GetDisplayName() + " victim=" + akTarget.GetDisplayName())
@@ -3091,7 +2972,7 @@ Function Investigate_Execute(Actor akInitiator, Actor akTarget)
     a2[1] = "Babo_Investigation_S02_A01"
     a2[2] = "Babo_Investigation_S03_A01"
 
-    PlayPairedSequence(akInitiator, akTarget, 0.0, 10.0, 180.0, a1, a2, fSequenceStageTimer, True)
+    PlayPairedSequence(akInitiator, akTarget, 0.0, 0.0, 180.0, a1, a2, fSequenceStageTimer, True)
 
     If _bQTEDefeated
         Debug.Trace("[SNBaka] Execute: QTE defeated — calling DefeatGroundWindow. attacker=" + akInitiator.GetDisplayName() + " victim=" + akTarget.GetDisplayName())
@@ -3139,16 +3020,16 @@ Function Struggle_Execute(Actor akInitiator, Actor akTarget)
     a2[3] = "Babo_Struggle_S04_A01"
     a2[4] = "Babo_Struggle_S05_A01"
 
-    ; NPC-NPC looks right at yLocal 5 (victim ~5 behind the attacker). PC-NPC reads as slightly
-    ; off — the victim needs to sit ~2 units farther ahead, so use a smaller behind-offset (3)
-    ; whenever the player is involved. (If it ends up too close, bump this back toward 5/7.)
-    Float yOff = fStruggleSep_NPC          ; see POSITIONING TUNING block at top
+    ; New convention: the victim sits FRONT-LEFT of the attacker. fStruggleSep_* = how far in FRONT
+    ; (yLocal +), fStruggleLeft = how far to the LEFT (xLocal -). Co-located is 0,0; tune from the
+    ; "[Baka] Sequence ...: victim vs attacker(0,0,0) = L.. F.." log line.
+    Float yFront = fStruggleSep_NPC
     If akInitiator == PlayerRef            ; player is the attacker
-        yOff = fStruggleSep_PCAtk
+        yFront = fStruggleSep_PCAtk
     ElseIf akTarget == PlayerRef           ; player is the victim
-        yOff = fStruggleSep_PCVic
+        yFront = fStruggleSep_PCVic
     EndIf
-    PlayPairedSequence(akInitiator, akTarget, 0.0, yOff, 0.0, a1, a2, fSequenceStageTimer, True)
+    PlayPairedSequence(akInitiator, akTarget, fStruggleLeft, yFront, 0.0, a1, a2, fSequenceStageTimer, True)
 
     If _bQTEDefeated
         Debug.Trace("[SNBaka] Execute: QTE defeated — calling DefeatGroundWindow. attacker=" + akInitiator.GetDisplayName() + " victim=" + akTarget.GetDisplayName())
@@ -3208,7 +3089,7 @@ Function ChokeHug_Execute(Actor akInitiator, Actor akTarget)
     If akTarget == PlayerRef
         yChoke = fChokeHugSep_PCVic
     EndIf
-    PlayPairedSequence(akInitiator, akTarget, 0.0, yChoke, 0.0, a1, a2, fSequenceStageTimer, True)
+    PlayPairedSequence(akInitiator, akTarget, 0.0, 0.0, 0.0, a1, a2, fSequenceStageTimer, True)
 
     If _bQTEDefeated
         Debug.Trace("[SNBaka] Execute: QTE defeated — calling DefeatGroundWindow. attacker=" + akInitiator.GetDisplayName() + " victim=" + akTarget.GetDisplayName())
@@ -3269,7 +3150,7 @@ Function DrunkExploit_Execute(Actor akInitiator, Actor akTarget)
     If akInitiator == PlayerRef
         _fPlayerZAdjust = -1.0
     EndIf
-    PlayPairedSequence(akInitiator, akTarget, 3.0, -2.0, 0.0, a1, a2, fSequenceStageTimer, True)   ; x=3 (victim ~3 to attacker's left), y=-2
+    PlayPairedSequence(akInitiator, akTarget, 0.0, 0.0, 0.0, a1, a2, fSequenceStageTimer, True)   ; co-located base; tune from the [Baka] log
     _fPlayerZAdjust = 0.0
     If _bQTEDefeated
         _bQTEDefeated = False
@@ -3308,7 +3189,7 @@ Function DrugFood_Execute(Actor akInitiator, Actor akTarget)
     ; AI — without it the AI recovers and the bleedout never sticks (the reported bug).
     _bQTEDefeated = True
     PlayPairedSimpleAnim(akInitiator, akTarget, \
-        -25.0, -20.0, 0.0, \
+        0.0, 0.0, 0.0, \
         "Babo_DruggedFoodConsumptionM", "Babo_DruggedFoodConsumptionF", \
         fMolestLoopDuration)
     _bQTEDefeated = False
@@ -3340,7 +3221,7 @@ Function ShowingOffBody_Execute(Actor akInitiator, Actor akTarget)
         akInitiator, akTarget)
 
     PlayPairedSimpleAnim(akInitiator, akTarget, \
-        0.0, 50.0, 180.0, \
+        0.0, 0.0, 180.0, \
         "BaboShowingOffBodyA2", "BaboShowingOffBodyA1", \
         fMolestLoopDuration)
 
@@ -3378,7 +3259,7 @@ Function FondlePussy_Execute(Actor akInitiator, Actor akTarget)
         yFondle = fFondleSep_PC
     EndIf
     PlayPairedSimpleAnim(akInitiator, akTarget, \
-        0.0, yFondle, 0.0, \
+        0.0, 0.0, 0.0, \
         "BaboPlayingPussyA2", "BaboPlayingPussyA1", \
         fTouchLoopDuration)
 
@@ -3777,7 +3658,7 @@ Function SpankTarget_Execute(Actor akSpanker, Actor akTarget, Bool akForceButt =
         If LockBoth(akSpanker, akTarget)
             ; Babo anim plays its own impact slap — suppress ours; moan at mid-anim.
             PlayPairedSimpleAnim(akSpanker, akTarget, \
-                -60.0, -15.0, 0.0, \
+                0.0, 0.0, 0.0, \
                 "BaboSpankingM", "BaboSpankingF", \
                 0.3, False, False, True)   ; was 1.0 — trimmed the post-slap hold (~1s too long)
             ApplyButtReaction(akTarget)
