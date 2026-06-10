@@ -57,7 +57,7 @@ Bool  Property bNPCCanEscalate       = True  Auto
 ; ╚══════════════════════════════════════════════════════════════════════════╝
 ; Struggle (PlayPairedSequence) — gap with the victim standing ahead of the aggressor.
 Float Property fStruggleSep_NPC   = 22.0  Auto  ; NPC aggressor + NPC victim (30 -> 22: a bit closer)
-Float Property fStruggleSep_PCAtk = 3.0   Auto  ; player is the aggressor
+Float Property fStruggleSep_PCAtk = -15.0 Auto  ; player is the aggressor (negative pulls the victim forward into the grapple)
 Float Property fStruggleSep_PCVic = 10.0  Auto  ; player is the victim  (7 -> 10: "too close")
 ; Back-hug molest (PlayPairedLoopAnim) — how far BEHIND (negative) the attacker stands.
 Float Property fBackHugSep_NPC    = -50.0 Auto  ; NPC vs NPC (targets ~50 dist)
@@ -76,11 +76,15 @@ Float Property fChokeHugSep_NPC   = -8.0  Auto  ; NPC vs NPC (0 -> -8: victim wa
 Float Property fChokeHugSep_PCVic = -15.0 Auto  ; player victim — push the attacker further back
 ; Forced kiss (PlayPairedLoopAnim, face-to-face) — 0 = the anim's own spacing; negative pulls the
 ; pair closer (the SLAP kiss anim leaves a person-width gap).
-Float Property fForcedKissSep_NPC = 0.0   Auto  ; NPC vs NPC
-Float Property fForcedKissSep_PC  = -25.0 Auto  ; player involved — close the person-width gap
+Float Property fForcedKissSep_NPC = 0.0   Auto  ; NPC vs NPC      (X axis = front-to-back gap)
+Float Property fForcedKissSep_PC  = 10.0  Auto  ; player involved (X axis ~15cm gap, face-to-face; flip sign if back-to-back)
+; Base Flirt (Babo_Flirt paired) — the anim leaves the partner too far back; pull them forward
+; along the X axis (front-to-back for this anim family) so the victim lines up with the arm.
+Float Property fFlirtSep_NPC       = -20.0 Auto  ; NPC vs NPC      (flip sign if it goes the wrong way)
+Float Property fFlirtSep_PC        = 0.0   Auto  ; player involved (0 = the spacing that already worked; tune if needed)
 ; DEBUG: position tuning — on-screen offsets + final coords per scene. OFF by default now that
 ; spacing is mostly dialed in; flip True (or tick in the CK) when you need to retune positions.
-Bool  Property bDebugPositions    = False Auto
+Bool  Property bDebugPositions    = True  Auto
 ; DEBUG: action/power logging — a concise on-screen line + a detailed log line for each action
 ; (interaction name, aggressor, target) and each interact-power press (target, or "no target on
 ; crosshair"). Left ON so you can see what's firing; untick to silence.
@@ -1078,7 +1082,8 @@ Function PlayPairedLoopAnim(Actor akA1, Actor akA2, \
         String sStopA1   = "Babo_DefeatResist_A1_S2", \
         String sStopA2   = "Babo_DefeatResist_A2_S2", \
         Actor akImpactActor = None, \
-        Bool bDisableCollision = True)
+        Bool bDisableCollision = True, \
+        Bool bRefreshLoop = False)
 
     Bool a1IsPlayer = (akA1 == PlayerRef)
     Bool a2IsPlayer = (akA2 == PlayerRef)
@@ -1254,6 +1259,24 @@ Function PlayPairedLoopAnim(Actor akA1, Actor akA2, \
                     _bQTEDefeated = True   ; caller's If _bQTEDefeated -> DefeatGroundWindow
                 EndIf
             EndIf
+        ElseIf bRefreshLoop
+            ; Some loop anims (the SLAP forced-kiss victim loop) play one cycle then fall back to
+            ; idle, so the victim drops the pose before loopDur is up. Re-fire the loop events on a
+            ; tick so both actors stay in the pose for the whole duration.
+            Float held = 0.0
+            Bool stop = False
+            While held < loopDur && !stop
+                stop = _WaitOrAbort(akA1, akA2, 2.0)
+                held += 2.0
+                If !stop && held < loopDur
+                    If loopA1 != ""
+                        Debug.SendAnimationEvent(akA1, loopA1)
+                    EndIf
+                    If loopA2 != ""
+                        Debug.SendAnimationEvent(akA2, loopA2)
+                    EndIf
+                EndIf
+            EndWhile
         Else
             _WaitOrAbort(akA1, akA2, loopDur)
         EndIf
@@ -2053,18 +2076,89 @@ Int Function _ResolveSexBackend()
 EndFunction
 
 ; Starts a 2-actor scene on the configured framework and applies the tear overlay to the victim.
-; Callers build the actor array themselves (no framework type needed there).  slTags/slExclude/
-; slRequireAll feed SexLab's GetAnimationsByTags; OStim ignores them (picks its own scene).
-Int Function _StartSexScene(Actor[] akActors, Actor akVictim, Actor akAggressor, String slTags, String slExclude, Bool slRequireAll)
+; ── SexLab tag matching ──────────────────────────────────────────────────────
+; SexLab packs tag their anims very differently (Leito / Anubis / Billyy / ZaZ / FunnyBizness /
+; Nibbles all use different words). Filtering on ONE canonical tag (e.g. "Aggressive") with
+; requireAll often returns NOTHING, so the scene fails or picks at random. Instead we OR a wide
+; synonym set per selection, suppress the opposite tone + the non-chosen positions, and fall back
+; broader if needed — so a fitting scene is almost always found.
+;   position  = "vaginal" / "anal" / "oral" / ""   intensity = "aggressive" / "loving" / ""
+String Function _SexIntensityTags(String intensity)
+    If intensity == "aggressive"
+        Return "Aggressive,Rough,Forced,Rape,Hardcore,Dom,Domination,Defeat,Brutal,Forsaken,Bound,Spanking,Violent,Painful"
+    ElseIf intensity == "loving"
+        Return "Loving,Hugging,Kissing,Caressing,Cuddle,Tender,Romantic,Sensual,Passionate,Gentle"
+    EndIf
+    Return ""
+EndFunction
+
+String Function _SexExcludeTags(String position, String intensity)
+    String ex = ""
+    If intensity == "aggressive"
+        ex = "Loving,Hugging,Caressing,Cuddle,Tender,Romantic,Sensual,Gentle,Foreplay"
+    ElseIf intensity == "loving"
+        ex = "Aggressive,Rough,Forced,Rape,Hardcore,Dom,Domination,Defeat,Brutal,Violent,Painful"
+    EndIf
+    String posEx = ""
+    If position == "vaginal"
+        posEx = "Anal,Oral"
+    ElseIf position == "anal"
+        posEx = "Vaginal,Oral"
+    ElseIf position == "oral"
+        posEx = "Vaginal,Anal"
+    EndIf
+    If ex != "" && posEx != ""
+        Return ex + "," + posEx
+    ElseIf posEx != ""
+        Return posEx
+    EndIf
+    Return ex
+EndFunction
+
+; OR over the synonym set, narrowest -> broadest, so it is rarely empty.
+sslBaseAnimation[] Function _ResolveSexAnims(String position, String intensity)
+    String intTags = _SexIntensityTags(intensity)
+    sslBaseAnimation[] anims
+    If intTags != ""
+        ; Tier 1: on-tone (OR) + suppress opposite tone AND the non-chosen positions.
+        anims = SexLab.GetAnimationsByTags(2, intTags, _SexExcludeTags(position, intensity), False)
+        If anims && anims.Length > 0
+            Debug.Trace("[SNBaka] _ResolveSexAnims: tier1 pos='" + position + "' int='" + intensity + "' -> " + anims.Length)
+            Return anims
+        EndIf
+        ; Tier 2: drop the position bias, keep tone.
+        anims = SexLab.GetAnimationsByTags(2, intTags, _SexExcludeTags("", intensity), False)
+        If anims && anims.Length > 0
+            Debug.Trace("[SNBaka] _ResolveSexAnims: tier2 (any position) int='" + intensity + "' -> " + anims.Length)
+            Return anims
+        EndIf
+    ElseIf position != ""
+        ; No intensity asked — match by position alone (OR).
+        anims = SexLab.GetAnimationsByTags(2, position, "", False)
+        If anims && anims.Length > 0
+            Debug.Trace("[SNBaka] _ResolveSexAnims: position-only '" + position + "' -> " + anims.Length)
+            Return anims
+        EndIf
+    EndIf
+    ; Tier 3: no filter — SexLab picks from everything.
+    Debug.Trace("[SNBaka] _ResolveSexAnims: no tag match -> unfiltered (SexLab picks any)")
+    sslBaseAnimation[] noneAnims
+    Return noneAnims
+EndFunction
+
+; Callers pass a position + intensity selector; we build the OR tag filter (above). OStim ignores
+; tags and picks its own scene.
+Int Function _StartSexScene(Actor[] akActors, Actor akVictim, Actor akAggressor, String position, String intensity)
     Int backend = _ResolveSexBackend()
     Int tid = -1
     If backend == 1
-        sslBaseAnimation[] anims
-        If slTags != ""
-            anims = SexLab.GetAnimationsByTags(2, slTags, slExclude, slRequireAll)
+        sslBaseAnimation[] anims = _ResolveSexAnims(position, intensity)
+        Int n = 0
+        If anims
+            n = anims.Length
         EndIf
         tid = SexLab.StartSex(akActors, anims, akVictim, akAggressor, True, "")
-        Debug.Trace("[SNBaka] _StartSexScene: SexLab StartSex tid=" + tid + " tags='" + slTags + "'")
+        Debug.Trace("[SNBaka] _StartSexScene: SexLab StartSex tid=" + tid + " pos='" + position + "' int='" + intensity + "' anims=" + n)
     ElseIf backend == 2
         tid = OThread.QuickStart(akActors)
         Debug.Trace("[SNBaka] _StartSexScene: OStim QuickStart tid=" + tid)
@@ -2169,11 +2263,8 @@ Function _DoEscalation(Actor akA1, Actor akA2)
     Actor[] sexActors = new Actor[2]
     sexActors[0] = akA1
     sexActors[1] = akA2
-    String escTags = ""
-    If _bDruggedEscalation
-        escTags = "Aggressive"   ; SexLab: filter to aggressive anims (OStim ignores tags)
-    EndIf
-    _StartSexScene(sexActors, akA2, akA1, escTags, "Foreplay,Loving,Leito", False)
+    ; Escalation is always a non-consensual overpower -> aggressive tone, any position.
+    _StartSexScene(sexActors, akA2, akA1, "", "aggressive")
     String npcNarr = akA1.GetDisplayName() + " overpowers " + akA2.GetDisplayName() + "."
     If _bDruggedEscalation
         npcNarr = akA1.GetDisplayName() + " takes advantage of the unconscious " + akA2.GetDisplayName() + ". " + \
@@ -2251,25 +2342,20 @@ Function _StartSexLabScene(String role, String intensity, String flavor, String 
         consensual = True
     EndIf
 
-    ; ── Build SexLab tag filter ──────────────────────────────────────────────
-    String tags = ""
+    ; ── Normalize the action's act-type + intensity into our SexLab selectors ──
+    String sexPos = ""
     If actType == "vaginal"
-        tags = "Vaginal"
+        sexPos = "vaginal"
     ElseIf actType == "anal" || actType == "painal"
-        tags = "Anal"
+        sexPos = "anal"
     ElseIf actType == "oral"
-        tags = "Oral"
+        sexPos = "oral"
     EndIf
+    String sexInt = ""
     If intensity == "rough" || intensity == "brutal"
-        If tags != ""
-            tags += ","
-        EndIf
-        tags += "Aggressive"
+        sexInt = "aggressive"
     ElseIf intensity == "loving"
-        If tags != ""
-            tags += ","
-        EndIf
-        tags += "Loving"
+        sexInt = "loving"
     EndIf
 
     ; ── Start the scene (dispatched to the configured framework) ──────────────
@@ -2281,7 +2367,7 @@ Function _StartSexLabScene(String role, String intensity, String flavor, String 
         sexActors[0] = agg
         sexActors[1] = vic
     EndIf
-    _StartSexScene(sexActors, vic, agg, tags, "", True)
+    _StartSexScene(sexActors, vic, agg, sexPos, sexInt)
 
     ; ── Compose the roleplay narrative for SkyrimNet ─────────────────────────
     String aggName = agg.GetDisplayName()
@@ -2588,15 +2674,23 @@ Function ForcedKiss_Execute(Actor akInitiator, Actor akTarget)
     ; A2_* = aggressor role, A1_* = passive/victim role (SLAP convention).
     ; Initiator is always the aggressor — always plays A2_*. No QTE.
     ; Face-to-face, very close (kiss).
-    Float yKiss = fForcedKissSep_NPC
+    Float xKiss = fForcedKissSep_NPC
     If akInitiator == PlayerRef || akTarget == PlayerRef
-        yKiss = fForcedKissSep_PC
+        xKiss = fForcedKissSep_PC
     EndIf
+    ; X axis = front-to-back gap for this SLAP kiss anim (its Y reads as lateral, which put them
+    ; side-by-side). Keep yLocal 0 so they stay one directly in front of the other.
+    ; bRefreshLoop=True: the SLAP kiss loop exits after one cycle, so re-fire it on a tick to keep
+    ; the victim in the pose for the full duration (defaults spelled out to reach the trailing flag).
     PlayPairedLoopAnim(akInitiator, akTarget, \
-        0.0, yKiss, 180.0, \
+        xKiss, 0.0, 180.0, \
         "SLAPForcedKiss01_A2_S01",    "SLAPForcedKiss01_A1_S01", \
         "SLAPForcedKiss01_A2_Loop",   "SLAPForcedKiss01_A1_Loop", \
-        2.0, fKissLoopDuration)
+        2.0, fKissLoopDuration, \
+        False, \
+        "Babo_DefeatResist_A1_S1", "Babo_DefeatResist_A2_S1", \
+        "Babo_DefeatResist_A1_S2", "Babo_DefeatResist_A2_S2", \
+        None, True, True)
 
     _CueOutcome("baka_forced", \
         akInitiator.GetDisplayName() + " forced a kiss on " + akTarget.GetDisplayName() + " against their will.", \
@@ -2859,7 +2953,14 @@ Function Flirt_Execute(Actor akInitiator, Actor akTarget)
     a2[0] = "Babo_Flirt_A01"
     a2[1] = "Babo_Flirt_A01"
 
-    PlayPairedSequence(akInitiator, akTarget, 0.0, 0.0, 0.0, a1, a2, fTouchLoopDuration)
+    ; X axis = front-to-back for this anim family (its baked root rotation makes marker-X read as
+    ; forward). Negative pulls the flirted partner up to match the performer's arm. The player path
+    ; (anchorOnPlayer) already looked right, so it keeps its own value (fFlirtSep_PC, default 0).
+    Float xFlirt = fFlirtSep_NPC
+    If akInitiator == PlayerRef || akTarget == PlayerRef
+        xFlirt = fFlirtSep_PC
+    EndIf
+    PlayPairedSequence(akInitiator, akTarget, xFlirt, 0.0, 0.0, a1, a2, fTouchLoopDuration)
     ; Mark that this actor flirted — unlocks the flirt escalations (face/breast/pussy) for a while.
     StorageUtil.SetFloatValue(akInitiator, "SNBaka.LastFlirt", Utility.GetCurrentGameTime())
 
