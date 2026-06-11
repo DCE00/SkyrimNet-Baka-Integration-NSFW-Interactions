@@ -14,6 +14,8 @@ Float Property fMolestLoopDuration   = 8.0   Auto
 Float Property fKissLoopDuration     = 6.0   Auto
 Float Property fTouchLoopDuration    = 6.0   Auto
 Float Property fSequenceStageTimer   = 4.0   Auto
+Float Property fSoloPoseDuration     = 30.0  Auto  ; how long an LLM-driven solo pose (SNBaka_Pose) holds
+Int   Property iDrinkBlackoutChance  = 30    Auto  ; % chance PoseDrink ends in a passed-out-drunk blackout
 Float Property fPlayerCooldown       = 0.5   Auto  ; cooldown after player-initiated actions
 Float Property fNPCCooldown          = 8.0   Auto  ; per-NPC cooldown after NPC-initiated actions (was 20)
 ; After any NPC-initiated action completes, all further NPC actions are blocked for this
@@ -893,6 +895,28 @@ EndFunction
 ; free — looking is left enabled), or SetRestrained+SetDontMove+pacify for NPCs. The Babo down
 ; idle is a cyclic 'b' animation, so it loops and holds the pose until _Recover stands them up
 ; with IdleForceDefaultState. With no AI/agency on the victim, escalation can still run on them.
+; Weighted-random downed pose, for variety when no caller set _sDownPose. All options read as a
+; collapse on the ground so they fit the pinned/restrained down state. KnockOut is a sequence whose
+; Start transitions into a looping knocked-out pose; FaintF is female-only. Add Panting/Surrender to
+; the pools if they read as ground poses in-game. (Outcome-specific poses: set _sDownPose before the
+; ground window to force one — e.g. a brutal KO -> "BaboDefeatKnockOutStart".)
+String Function _PickDownPose(Actor akVictim)
+    Int r = Utility.RandomInt(1, 100)
+    If akVictim && akVictim.GetActorBase().GetSex() == 1   ; female pool
+        If r <= 25
+            Return "BaboFaintF"
+        ElseIf r <= 60
+            Return "BaboDefeatKnockOutStart"
+        EndIf
+        Return "Babo_DefeatTraumaLie"
+    EndIf
+    ; male / other pool
+    If r <= 45
+        Return "BaboDefeatKnockOutStart"
+    EndIf
+    Return "Babo_DefeatTraumaLie"
+EndFunction
+
 Function _Bleedout(Actor akVictim, Actor akWitness)
     Debug.Trace("[SNBaka] _Bleedout: victim=" + akVictim.GetDisplayName() + " isPlayer=" + (akVictim == PlayerRef))
     ; Clear any looping paired animation still playing on the victim first.
@@ -902,7 +926,7 @@ Function _Bleedout(Actor akVictim, Actor akWitness)
     ; Same Babo down idle for BOTH player and NPC.
     String downAnim = _sDownPose
     If downAnim == ""
-        downAnim = "Babo_DefeatTraumaLie"   ; genderless lying-trauma default
+        downAnim = _PickDownPose(akVictim)   ; weighted variety; _sDownPose still overrides
     EndIf
     Debug.SendAnimationEvent(akVictim, downAnim)
     Debug.Trace("[SNBaka] _Bleedout: down pose = " + downAnim + " on " + akVictim.GetDisplayName())
@@ -3768,6 +3792,173 @@ Function _DownedReplay(Actor akA1, Actor akA2, Int which)
     ; Free the attacker again so they stand back over the downed victim.
     _UnlockAttackerOnly(akA1)
     Debug.Trace("[SNBaka] _DownedReplay: complete — victim re-downed")
+EndFunction
+
+; ============================================================
+; SOLO POSES (SNBaka_Pose) — single-actor, LLM-driven idle / gesture / submission
+; ============================================================
+; Play one anim event on an NPC and hold it (re-asserted each tick) for fSoloPoseDuration, ending
+; early on combat or death. Mirrors the paired-hold approach but for a single actor, no positioning.
+; bLockMove = SetDontMove (for kneel/grovel a bump shouldn't break). Never the player.
+Function _PlaySoloHold(Actor ak, String animEvent, Bool bLockMove = False)
+    If !ak || ak == PlayerRef || ak.IsDead() || ak.IsInCombat()
+        Return
+    EndIf
+    _HoldActorAI(ak, True)
+    _PacifyActor(ak, True)
+    ak.SetRestrained(True)
+    If bLockMove
+        ak.SetDontMove(True)
+    EndIf
+    Debug.SendAnimationEvent(ak, "IdleForceDefaultState")
+    Utility.Wait(0.15)
+    Float elapsed = 0.0
+    Float tick    = 2.0
+    Bool aborted  = False
+    While elapsed < fSoloPoseDuration && !aborted
+        Debug.SendAnimationEvent(ak, animEvent)              ; re-assert so nothing drifts them off it
+        Float step = tick
+        If elapsed + step > fSoloPoseDuration
+            step = fSoloPoseDuration - elapsed
+        EndIf
+        ; _WaitOrAbort polls _ShouldAbort every 0.5s: death, disabled, combat (attacked), teleport, stop.
+        aborted = _WaitOrAbort(ak, ak, step)
+        elapsed += step
+    EndWhile
+    ; Cleanup ALWAYS runs (incl. on abort/death) so the actor is never left restrained/pacified/ghosted.
+    ak.SetRestrained(False)
+    If bLockMove
+        ak.SetDontMove(False)
+    EndIf
+    _PacifyActor(ak, False)
+    _HoldActorAI(ak, False)
+    Debug.SendAnimationEvent(ak, "IdleForceDefaultState")
+    ak.EvaluatePackage()
+EndFunction
+
+Function PoseKneel_Execute(Actor akInitiator)
+    RecordAnimation(akInitiator, "PoseKneel", "")
+    _PlaySoloHold(akInitiator, "Babo_Kneel", True)
+EndFunction
+
+Function PoseDogeza_Execute(Actor akInitiator)
+    RecordAnimation(akInitiator, "PoseDogeza", "")
+    _PlaySoloHold(akInitiator, "Babo_Dogeja", True)
+EndFunction
+
+Function PoseMeditate_Execute(Actor akInitiator)
+    RecordAnimation(akInitiator, "PoseMeditate", "")
+    _PlaySoloHold(akInitiator, "BaboMeditate", False)
+EndFunction
+
+Function PoseCrouch_Execute(Actor akInitiator)
+    RecordAnimation(akInitiator, "PoseCrouch", "")
+    _PlaySoloHold(akInitiator, "BaboCrouchM", False)
+EndFunction
+
+Function PoseSleep_Execute(Actor akInitiator)
+    RecordAnimation(akInitiator, "PoseSleep", "")
+    _PlaySoloHold(akInitiator, "BaboSleeponBedRoll", True)
+EndFunction
+
+Function PoseScratchHead_Execute(Actor akInitiator)
+    RecordAnimation(akInitiator, "PoseScratchHead", "")
+    _PlaySoloHold(akInitiator, "BaboIdleScratchingHead", False)
+EndFunction
+
+Function PoseBraceArm_Execute(Actor akInitiator)
+    RecordAnimation(akInitiator, "PoseBraceArm", "")
+    _PlaySoloHold(akInitiator, "BaboIdleHoldon", False)
+EndFunction
+
+Function PoseHandOnFace_Execute(Actor akInitiator)
+    RecordAnimation(akInitiator, "PoseHandOnFace", "")
+    _PlaySoloHold(akInitiator, "BaboHandonFace", False)
+EndFunction
+
+Function PoseHandOnChin_Execute(Actor akInitiator)
+    RecordAnimation(akInitiator, "PoseHandOnChin", "")
+    _PlaySoloHold(akInitiator, "BaboHandonChin", False)
+EndFunction
+
+Function PoseDrool_Execute(Actor akInitiator)
+    RecordAnimation(akInitiator, "PoseDrool", "")
+    _PlaySoloHold(akInitiator, "BaboDroolingFace", False)
+EndFunction
+
+Function PoseAutograph_Execute(Actor akInitiator)
+    RecordAnimation(akInitiator, "PoseAutograph", "")
+    _PlaySoloHold(akInitiator, "BaboAutograph", False)
+EndFunction
+
+Function PosePickpocket_Execute(Actor akInitiator)
+    RecordAnimation(akInitiator, "PosePickpocket", "")
+    _PlaySoloHold(akInitiator, "BaboExPocketPullout", False)
+EndFunction
+
+; Arousal idle — gendered clip (male/female variants), random of two.
+Function PoseAroused_Execute(Actor akInitiator)
+    RecordAnimation(akInitiator, "PoseAroused", "")
+    String ev
+    If akInitiator.GetActorBase().GetSex() == 1   ; female
+        If Utility.RandomInt(1, 2) == 1
+            ev = "BaboArousedFemale01"
+        Else
+            ev = "BaboArousedFemale02"
+        EndIf
+    Else
+        If Utility.RandomInt(1, 2) == 1
+            ev = "BaboArousedMale01"
+        Else
+            ev = "BaboArousedMale02"
+        EndIf
+    EndIf
+    _PlaySoloHold(akInitiator, ev, False)
+EndFunction
+
+; Drink (female): normally just a drinking idle, but with iDrinkBlackoutChance% she drinks herself
+; into a stupor and slumps unconscious — pacified + held, and a baka_opportunity cue invites a nearby
+; malicious NPC's DrunkExploit / the player's power. (Blackout is a Start->Loop sequence, so it is sent
+; ONCE and held without re-asserting — _PlaySoloHold's per-tick re-assert would restart the intro.)
+Function PoseDrink_Execute(Actor akInitiator)
+    If !akInitiator || !HasFemaleBody(akInitiator) || akInitiator == PlayerRef
+        Return
+    EndIf
+    RecordAnimation(akInitiator, "PoseDrink", "")
+    If Utility.RandomInt(1, 100) <= iDrinkBlackoutChance
+        SkyrimNetApi.RegisterEvent("baka_opportunity", \
+            akInitiator.GetDisplayName() + " has drunk herself into a stupor and slumped down — helpless, defenseless and unaware.", \
+            akInitiator, None)
+        _HoldActorAI(akInitiator, True)
+        _PacifyActor(akInitiator, True)
+        akInitiator.SetRestrained(True)
+        akInitiator.SetDontMove(True)
+        Debug.SendAnimationEvent(akInitiator, "IdleForceDefaultState")
+        Utility.Wait(0.15)
+        Debug.SendAnimationEvent(akInitiator, "BaboDrinkBlackOut")   ; Start -> BlackOutLoop; held, not re-asserted
+        _WaitOrAbort(akInitiator, akInitiator, fSoloPoseDuration)
+        akInitiator.SetRestrained(False)
+        akInitiator.SetDontMove(False)
+        _PacifyActor(akInitiator, False)
+        _HoldActorAI(akInitiator, False)
+        Debug.SendAnimationEvent(akInitiator, "IdleForceDefaultState")
+        akInitiator.EvaluatePackage()
+    Else
+        _PlaySoloHold(akInitiator, "BaboDrinkNormal", False)
+    EndIf
+EndFunction
+
+; Food (female): a reaction idle — eats anyway, or recoils in disgust (random). Pure flavor.
+Function PoseFood_Execute(Actor akInitiator)
+    If !akInitiator || !HasFemaleBody(akInitiator)
+        Return
+    EndIf
+    RecordAnimation(akInitiator, "PoseFood", "")
+    String ev = "Babo_FoodEatAnyway"
+    If Utility.RandomInt(1, 2) == 2
+        ev = "Babo_FoodDisgusting"
+    EndIf
+    _PlaySoloHold(akInitiator, ev, False)
 EndFunction
 
 ; ============================================================
