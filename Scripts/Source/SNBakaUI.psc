@@ -44,6 +44,12 @@ Bool Function IsCraftingTemptation(ObjectReference akFurniture) Global Native
 ; together with these two actors.  Only call when the player is involved.
 Function ShowEncounterMenu(Actor akAggressor, Actor akVictim) Global Native
 
+; Opens the downed-victim menu (Escalate / Investigate / Inspect / Stand Back),
+; shown when the power is used on a defeated victim still on the ground. The pick
+; comes back to SkyrimNet_BakaIntegration._DispatchDownedAction(choice, caster, victim):
+;   0 = Escalate, 1 = Investigate, 2 = Inspect, 3 = Stand Back, <0 = cancel/stay down.
+Function ShowDownedMenu(Actor akCaster, Actor akVictim) Global Native
+
 ; Show the sex-spank menu panel.  json must be:
 ;   {"names":["Lydia","Serana"],"playerInScene":true}
 ; Result via "SNBaka_MenuChoice" (strArg="sexspank", numArg=choiceId).

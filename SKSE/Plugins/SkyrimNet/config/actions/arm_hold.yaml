@@ -1,0 +1,62 @@
+name: ArmHold
+description: |
+  The initiator takes the target gently by the arm and holds them close at their side —
+  a warm, steadying, affectionate gesture. Both stay standing, side by side.
+
+  WHEN A CHARACTER WOULD DO THIS:
+  - Leading or escorting someone they care about
+  - A reassuring, protective touch when the target is uneasy
+  - Quiet closeness between partners, friends, or family
+  - Keeping someone near without the intensity of a full embrace
+
+  PERSONALITY TYPES WHO WOULD DO THIS:
+  - Warm, caring, protective
+  - Reserved or gentle (prefers a light touch over a big hug)
+  - Attentive and steadying
+
+  DO NOT USE:
+  - During combat or when either actor is in danger
+  - As a hostile, restraining or threatening act
+  - On a stranger with no rapport
+
+  CONSEQUENCES:
+  - The target is held close at the arm for a short moment
+  - Reads as affectionate / reassuring depending on their bond
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: ArmHold_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: The NPC taking the other by the arm.
+  - type: dynamic
+    name: akTarget
+    description: The person being held by the arm — player or nearby NPC.
+
+enabled: true
+defaultPriority: 2
+customCategory: SNBaka_Grab
+eligibilityRules:
+  - conditions:
+      - decoratorName: "is_in_combat"
+        arguments: ["currentActor"]
+        comparisonOperator: "=="
+        expectedValue: false
+    logicalOperator: "AND"
+    required: true
+  - conditions:
+      - decoratorName: "get_faction_rank"
+        arguments: ["currentActor", "SexLabAnimatingFaction"]
+        comparisonOperator: "<"
+        expectedValue: 0
+    logicalOperator: "AND"
+    required: true
+  - conditions:
+      - decoratorName: "get_faction_rank"
+        arguments: ["currentActor", "OStimActorCountFaction"]
+        comparisonOperator: "<"
+        expectedValue: 0
+    logicalOperator: "AND"
+    required: true

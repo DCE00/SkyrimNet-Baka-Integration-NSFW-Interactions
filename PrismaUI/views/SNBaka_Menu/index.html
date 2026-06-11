@@ -403,41 +403,41 @@
 //  id maps directly to Papyrus _DispatchInteractAction(choice)
 // ════════════════════════════════════════════════════════════
 const CATEGORIES = [
-  { id: 'tender',   label: 'Tender'   },
-  { id: 'dominant', label: 'Dominant' },
-  { id: 'intimate', label: 'Intimate' },
-  { id: 'devious',  label: 'Devious'  },
+  { id: 'affectionate', label: 'Affection' },
+  { id: 'forced',       label: 'Forced'       },
+  { id: 'sexual',       label: 'Sexual'       },
 ];
 const ACTIONS = {
-  tender:   [
+  affectionate: [
     { id: 0,  label: 'Back Hug'      },
     { id: 1,  label: 'Front Hug'     },
+    { id: 24, label: 'Arm Hold'      },
     { id: 2,  label: 'Kiss'          },
     { id: 3,  label: 'Flirt'         },
     { id: 16, label: 'Caress Face'   },
     { id: 17, label: 'Tease Breasts' },
     { id: 18, label: 'Tease Below'   },
+    { id: 12, label: 'Show Off Body' },
   ],
-  dominant: [
-    { id: 4,  label: 'Grab Hold',    qte: true },
-    { id: 5,  label: 'Struggle',     qte: true },
-    { id: 6,  label: 'Choke Behind', qte: true },
-    { id: 7,  label: 'Womb Hit'      },
+  forced: [
+    { id: 4,  label: 'Grab Hold',     qte: true },
+    { id: 5,  label: 'Struggle',      qte: true },
+    { id: 6,  label: 'Choke Behind',  qte: true },
+    { id: 7,  label: 'Womb Hit'       },
+    { id: 8,  label: 'Forced Kiss'    },
+    { id: 13, label: 'Drunk Exploit', qte: true },
+    { id: 14, label: 'Drug Food'      },
   ],
-  intimate: [
-    { id: 8,  label: 'Forced Kiss'   },
+  sexual: [
     { id: 9,  label: 'Spank'         },
     { id: 10, label: 'Touch Chest'   },
     { id: 11, label: 'Examine'       },
     { id: 19, label: 'Suck Breasts'  },
     { id: 20, label: 'Suck Privates' },
-    { id: 21, label: 'Play Privates', qte: true },
-  ],
-  devious:  [
-    { id: 12, label: 'Show Off Body' },
-    { id: 13, label: 'Drunk Exploit', qte: true },
-    { id: 14, label: 'Drug Food'     },
+    { id: 21, label: 'Play Privates' },
     { id: 15, label: 'Fondle'        },
+    { id: 22, label: 'Investigate'   },
+    { id: 23, label: 'Inspect'       },
   ],
 };
 
@@ -453,7 +453,7 @@ const ACTIONS = {
 //  STATE
 // ════════════════════════════════════════════════════════════
 let g_mode          = null;    // 'interact' | 'sexspank' | 'encounter'
-let g_activeTab     = 'tender';
+let g_activeTab     = 'affectionate';
 let g_sexNames      = [];
 let g_playerInScene = false;
 let g_sexPhase      = 'who';   // 'who' | 'bywhom'
@@ -505,7 +505,7 @@ window.snbaka_open_interact = function(targetName) {
   _hide('btn-back');
   _el('footer-hint').textContent = 'Esc · cancel';
   _buildTabs();
-  _selectTab('tender');
+  _selectTab('affectionate');
   _open();
 };
 
@@ -537,6 +537,51 @@ window.snbaka_open_encounter = function(json) {
   _hide('mode-sex');
   _show('mode-encounter');
   _renderEncStep();
+  _open();
+};
+
+// targetName = victim display name.  Single-step list (reuses the encounter
+// container) of the four downed-victim choices.  Picks dispatch straight to
+// _DispatchDownedAction via _choose:  0 Escalate · 1 Investigate · 2 Inspect · 3 Stand Back.
+window.snbaka_open_downed = function(targetName) {
+  g_mode = 'downed';
+  _el('header-label').textContent  = 'Downed';
+  _el('header-target').textContent = targetName || '';
+  _hide('mode-interact');
+  _hide('mode-sex');
+  _show('mode-encounter');
+
+  const prog = _el('enc-progress');
+  if (prog) prog.innerHTML = '';
+
+  const el = _el('enc-list');
+  el.innerHTML = '';
+  const lbl = document.createElement('div');
+  lbl.className = 'sex-label';
+  lbl.textContent = (targetName || 'The victim') + ' is down — what now?';
+  el.appendChild(lbl);
+
+  const grid = document.createElement('div');
+  grid.className = 'action-list';
+  const DOWNED = [
+    { t: 'Choke Down',  v: 0 },
+    { t: 'Investigate', v: 1 },
+    { t: 'Inspect',     v: 2 },
+    { t: 'Stand Back',  v: 3 },
+  ];
+  grid.style.gridTemplateColumns = 'repeat(' + _gridCols(DOWNED.length) + ', 1fr)';
+  DOWNED.forEach(opt => {
+    const div = document.createElement('div');
+    div.className = 'action-item';
+    div.innerHTML = `<span>${opt.t}</span>`;
+    div.tabIndex = 0;
+    div.onclick = () => _choose(opt.v);
+    grid.appendChild(div);
+  });
+  el.appendChild(grid);
+
+  _hide('btn-back');
+  _el('footer-hint').textContent = 'Esc · stay down';
   _open();
 };
 
@@ -616,7 +661,9 @@ function _selectTab(catId) {
 
   const el = _el('action-list');
   el.innerHTML = '';
-  (ACTIONS[catId] || []).forEach(action => {
+  const items = ACTIONS[catId] || [];
+  el.style.gridTemplateColumns = 'repeat(' + _gridCols(items.length) + ', 1fr)';
+  items.forEach(action => {
     const div = document.createElement('div');
     div.className = 'action-item';
     let html = `<span>${action.label}</span>`;
@@ -626,6 +673,12 @@ function _selectTab(catId) {
     div.onclick = () => _choose(action.id);
     el.appendChild(div);
   });
+}
+
+// Near-square grid: columns = ceil(sqrt(n)) so a tab fills a compact block instead of a tall
+// 2-wide column you have to wheel through.  4->2x2, 6->3x2, 7/8/9->3 cols (last row may be short).
+function _gridCols(n) {
+  return n <= 1 ? 1 : Math.ceil(Math.sqrt(n));
 }
 
 // ════════════════════════════════════════════════════════════

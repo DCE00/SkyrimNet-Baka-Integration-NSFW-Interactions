@@ -192,6 +192,11 @@ String _sDownPose           = ""
 Bool _bEscalateRequested    = False
 ; Set by Release_Execute during the ground window to free the victim early without escalating.
 Bool _bReleaseRequested     = False
+; Downed-victim menu requests, polled by _DefeatGroundWindow's wait loop:
+;   _iDownedReplay 1 = Investigate, 2 = Inspect — play the inspection anim, then re-down + reset timer.
+;   _bStandBack = the player chose "Stand Back" — exit the window into the normal stand-up/recover path.
+Int  _iDownedReplay         = 0
+Bool _bStandBack            = False
 ; True when player is A2 (victim) for the current QTE — determines how afNumArg maps to escape.
 Bool _bPlayerIsVictim       = False
 ; Set by DrugFood_Execute before calling _DefeatGroundWindow so _DoEscalation
@@ -356,7 +361,10 @@ Bool Function IsEligible(Actor akA1, Actor akA2)
     If akA1.IsInCombat()
         Return False
     EndIf
-    If !bPlayerCanBeTarget && (akA1 == PlayerRef || akA2 == PlayerRef)
+    ; "Player Can Be Target" gates only the player being the VICTIM (akA2) — NOT the player
+    ; initiating on an NPC (akA1). The old check also blocked akA1==player, so unchecking this
+    ; disabled every player-started action and made the whole mod look "off".
+    If !bPlayerCanBeTarget && akA2 == PlayerRef
         Return False
     EndIf
     If bFemaleTargetOnly && !HasFemaleBody(akA2)
@@ -975,6 +983,24 @@ Function _StopTears(Actor akVictim)
     EndIf
 EndFunction
 
+; Affectionate interactions must never show a partner still crying from an earlier forced/sex
+; scene. Wipe BOTH tear systems on each actor: the EmoTears spell + expression (_StopTears) AND
+; the durable SlaveTats face overlay (zero the heat so the fade timer can't re-apply, then
+; ClearFaceMarks). Female-only guards inside the callees make this a no-op on males.
+Function _ClearTearsForAffection(Actor akA, Actor akB)
+    _ClearActorTears(akA)
+    _ClearActorTears(akB)
+EndFunction
+
+Function _ClearActorTears(Actor ak)
+    If !ak
+        Return
+    EndIf
+    _StopTears(ak)
+    StorageUtil.SetIntValue(ak, "SkyrimNetSDB.TearHeat", 0)
+    ClearFaceMarks(ak)
+EndFunction
+
 ; Second tears method — the one that actually survives a SexLab scene.
 ; _StartTears uses the EmoTears apply-spell, an MFG/animated facial effect that
 ; SexLab's per-stage expression system resets mid-scene (why tears "don't show"
@@ -1305,7 +1331,8 @@ Function PlayPairedSequence(Actor akA1, Actor akA2, \
         Float xLocal, Float yLocal, Float rotOffset, \
         String[] animsA1, String[] animsA2, Float stageTimer, \
         Bool bResistable = False, \
-        Bool bDisableCollision = True)
+        Bool bDisableCollision = True, \
+        Float afA1Stage0Rot = 0.0)
 
     Bool a1IsPlayer = (akA1 == PlayerRef)
     Bool a2IsPlayer = (akA2 == PlayerRef)
@@ -1459,8 +1486,19 @@ Function PlayPairedSequence(Actor akA1, Actor akA2, \
         ; Normal sequence — NPC-NPC (no QTE).
         If !bResistable
             ; Non-resistable paired sequence: just play every stage straight through.
+            Float a1BaseAng = akA1.GetAngleZ()   ; base facing from _SetupPair, for the optional stage-0 flip
             Int i = 0
             While i < animsA1.Length && !_ShouldAbort(akA1, akA2)
+                ; Some clips author stage 0 with the ATTACKER turned (Investigation): force akA1
+                ; +afA1Stage0Rot on stage 0 only, restore base facing from stage 1 onward.
+                If afA1Stage0Rot != 0.0
+                    If i == 0
+                        akA1.SetAngle(0.0, 0.0, a1BaseAng + afA1Stage0Rot)
+                    ElseIf i == 1
+                        akA1.SetAngle(0.0, 0.0, a1BaseAng)
+                    EndIf
+                    _HoldPinned(akA1)
+                EndIf
                 ; Freeze the actors on this stage for its whole duration (re-asserted each tick).
                 _HoldAnim(akA1, akA2, animsA1[i], animsA2[i], stageTimer)
                 i += 1
@@ -1672,10 +1710,18 @@ Function _DefeatGroundWindow(Actor akA1, Actor akA2)
         ; (No SetDontMove on the player — it locked the camera. The NPC is ghosted so it can't
         ; shove the player, and the player isn't ghosted so they won't fall; no pin needed.)
     EndIf
-    ; Set OnGround=1 immediately so Interact_ShowMenu's escalate shortcut can detect
+    ; Clear every downed-menu request flag BEFORE OnGround=1 (OnGround=1 is when the downed
+    ; menu becomes openable). Any pick made from here on survives into the wait loop — this
+    ; fixes the menu choice sometimes doing nothing because the old post-settle reset flushed
+    ; a quick pick made during the ~1.5s settle.
+    _bEscalateRequested = False
+    _bReleaseRequested  = False
+    _iDownedReplay      = 0
+    _bStandBack         = False
+    ; Set OnGround=1 immediately so Interact_ShowMenu's downed-menu shortcut can detect
     ; the downed victim as soon as the attacker's lock is released (before _Bleedout).
     StorageUtil.SetIntValue(akA2, "SNBaka.OnGround", 1)
-    Debug.Trace("[SNBaka] _DefeatGroundWindow: OnGround=1 (early — Interact shortcut ready)")
+    Debug.Trace("[SNBaka] _DefeatGroundWindow: OnGround=1 (early — downed menu ready)")
     _Bleedout(akA2, akA1)
     Debug.Trace("[SNBaka] _DefeatGroundWindow: bleedout on " + akA2.GetDisplayName())
     _StartTears(akA2)
@@ -1706,8 +1752,8 @@ Function _DefeatGroundWindow(Actor akA1, Actor akA2)
     ; 1-second settle: lets the down pose stabilise and flushes any stale Escalate_Execute
     ; calls that may have arrived before the window opened.
     Utility.Wait(1.0)
-    _bEscalateRequested = False
-    _bReleaseRequested  = False
+    ; (Flags were already cleared at the top, before OnGround=1 — do NOT clear them again here,
+    ; or a downed-menu pick made during this settle would be lost.)
     Debug.Trace("[SNBaka] _DefeatGroundWindow: escalate window open (" + fEscalationWindow + "s)")
     If _bDruggedEscalation
         SkyrimNetApi.RegisterEvent("baka_defeat", \
@@ -1726,15 +1772,26 @@ Function _DefeatGroundWindow(Actor akA1, Actor akA2)
     Float elapsed = 0.0
     Float tick    = 0.2
     Bool escalated = False
-    While elapsed < fEscalationWindow && !escalated && !_bReleaseRequested
+    While elapsed < fEscalationWindow && !escalated && !_bReleaseRequested && !_bStandBack
         Utility.Wait(tick)
         elapsed += tick
         If _bEscalateRequested
             escalated = True
             Debug.Trace("[SNBaka] _DefeatGroundWindow: escalate requested at t=" + elapsed)
+        ElseIf _iDownedReplay > 0
+            ; Downed-menu Investigate/Inspect: play the inspection anim through (no QTE),
+            ; re-down the victim, and reset the window timer so they stay defeated.
+            Int replayWhich = _iDownedReplay
+            _iDownedReplay = 0
+            Debug.Trace("[SNBaka] _DefeatGroundWindow: downed replay " + replayWhich + " at t=" + elapsed)
+            _DownedReplay(akA1, akA2, replayWhich)
+            elapsed = 0.0
+            Debug.Trace("[SNBaka] _DefeatGroundWindow: replay done — window timer reset, victim still down")
         EndIf
     EndWhile
 
+    Bool standBack = _bStandBack
+    _bStandBack    = False
     Bool released = _bReleaseRequested
     If released
         Debug.Trace("[SNBaka] _DefeatGroundWindow: release requested at t=" + elapsed + " — freeing victim early")
@@ -1744,6 +1801,8 @@ Function _DefeatGroundWindow(Actor akA1, Actor akA2)
 
     If escalated
         Debug.Notification(akA1.GetDisplayName() + " makes their move.")
+    ElseIf standBack
+        Debug.Notification(akA1.GetDisplayName() + " stands back; " + akA2.GetDisplayName() + " staggers to their feet.")
     ElseIf released
         Debug.Notification(akA1.GetDisplayName() + " steps back and lets you go.")
     Else
@@ -1758,6 +1817,11 @@ Function _DefeatGroundWindow(Actor akA1, Actor akA2)
     EndIf
     Debug.Trace("[SNBaka] _DefeatGroundWindow: OnGround=0. escalated=" + escalated)
 
+    If standBack
+        ; Stand Back: a visible stagger as they scramble up, then the normal recover/stand.
+        Debug.SendAnimationEvent(akA2, "staggerStart")
+        Utility.Wait(0.3)
+    EndIf
     _Recover(akA2)
     ; Only stand the player up if we are NOT about to chain into escalation.
     ; If escalated, _DoEscalation will handle controls and positioning directly.
@@ -2413,6 +2477,7 @@ Function BackHug_Execute(Actor akInitiator, Actor akTarget)
         akInitiator.GetDisplayName() + " holds " + akTarget.GetDisplayName() + " from behind.", \
         akInitiator, akTarget)
 
+    _ClearTearsForAffection(akInitiator, akTarget)
     PlayPairedLoopAnim(akInitiator, akTarget, \
         0.0, 0.0, 0.0, \
         "BaboBackHugStartM",    "BaboBackHugStartF", \
@@ -2488,6 +2553,7 @@ Function FrontHug_Execute(Actor akInitiator, Actor akTarget)
         akInitiator.GetDisplayName() + " embraces " + akTarget.GetDisplayName() + ".", \
         akInitiator, akTarget)
 
+    _ClearTearsForAffection(akInitiator, akTarget)
     PlayPairedLoopAnim(akInitiator, akTarget, \
         0.0, 0.0, 180.0, \
         "BaboFrontHugStartM",   "BaboFrontHugStartF", \
@@ -2496,6 +2562,32 @@ Function FrontHug_Execute(Actor akInitiator, Actor akTarget)
 
     _CueOutcome("baka_intimate", \
         akInitiator.GetDisplayName() + " and " + akTarget.GetDisplayName() + " shared a close embrace.", \
+        akInitiator, akTarget)
+    UnlockBoth(akInitiator, akTarget)
+EndFunction
+
+; --- ArmHold ---
+; Affectionate: the initiator takes the target by the arm and holds them close. Gendered M/F
+; parts like the hugs (M = initiator, F = target). Single loopable clip — no separate start/loop.
+Function ArmHold_Execute(Actor akInitiator, Actor akTarget)
+    If !IsEligible(akInitiator, akTarget)
+        Return
+    EndIf
+    If !LockBoth(akInitiator, akTarget)
+        Return
+    EndIf
+    RecordAnimation(akInitiator, "ArmHold", akTarget.GetDisplayName())
+    RecordAnimation(akTarget,    "ArmHold", akInitiator.GetDisplayName())
+    _CueOngoing("baka_intimate", \
+        akInitiator.GetDisplayName() + " takes " + akTarget.GetDisplayName() + " gently by the arm and holds them close.", \
+        akInitiator, akTarget)
+    _ClearTearsForAffection(akInitiator, akTarget)
+    PlayPairedSimpleAnim(akInitiator, akTarget, \
+        0.0, 0.0, 0.0, \
+        "BaboHoldArmM", "BaboHoldArmF", \
+        fHugLoopDuration)
+    _CueOutcome("baka_intimate", \
+        akInitiator.GetDisplayName() + " held " + akTarget.GetDisplayName() + " close by the arm.", \
         akInitiator, akTarget)
     UnlockBoth(akInitiator, akTarget)
 EndFunction
@@ -2532,6 +2624,7 @@ Function KissLove_Execute(Actor akInitiator, Actor akTarget)
         a2[1] = "BaboKissLoveS02_A2"
     EndIf
 
+    _ClearTearsForAffection(akInitiator, akTarget)
     PlayPairedSequence(akInitiator, akTarget, 0.0, 0.0, 180.0, a1, a2, fKissLoopDuration)
 
     _CueOutcome("baka_intimate", \
@@ -2701,20 +2794,13 @@ Function PlayPrivates_Execute(Actor akInitiator, Actor akTarget)
     PlayPanicSound(akTarget)
     _StartTears(akTarget)
 
+    ; No QTE — Play Privates just plays the loop, then releases (no knockdown).
     PlayPairedSimpleAnim(akInitiator, akTarget, \
         0.0, 0.0, 180.0, \
         "BaboPlayingPussyA2", "BaboPlayingPussyA1", \
-        fTouchLoopDuration, True)
-
-    If _bQTEDefeated
-        Debug.Trace("[SNBaka] Execute: QTE defeated — calling DefeatGroundWindow. attacker=" + akInitiator.GetDisplayName() + " victim=" + akTarget.GetDisplayName())
-        _bQTEDefeated = False
-        _UnlockAttackerOnly(akInitiator)
-        _DefeatGroundWindow(akInitiator, akTarget)
-    Else
-        _CueResistOutcome("baka_forced", akInitiator, akTarget)
-        UnlockBoth(akInitiator, akTarget)
-    EndIf
+        fTouchLoopDuration, False)
+    _CueResistOutcome("baka_forced", akInitiator, akTarget)
+    UnlockBoth(akInitiator, akTarget)
 EndFunction
 
 ; --- OralOnTarget --- [FEMALE TARGET REQUIRED]
@@ -2829,6 +2915,7 @@ Function Flirt_Execute(Actor akInitiator, Actor akTarget)
     EndIf
     RecordAnimation(akInitiator, "Flirt", akTarget.GetDisplayName())
     RecordAnimation(akTarget,    "Flirt", akInitiator.GetDisplayName())
+    _ClearTearsForAffection(akInitiator, akTarget)
     _CueOngoing("baka_intimate", \
         akInitiator.GetDisplayName() + " flirts with " + akTarget.GetDisplayName() + ".", \
         akInitiator, akTarget)
@@ -2883,6 +2970,7 @@ Function _FlirtEscalate(Actor akInitiator, Actor akTarget, String animA1, String
     _CueOngoing("baka_intimate", \
         akInitiator.GetDisplayName() + " " + what + " " + akTarget.GetDisplayName() + ".", \
         akInitiator, akTarget)
+    _ClearTearsForAffection(akInitiator, akTarget)
     ; animA1 is played by the INITIATOR (the toucher); pass the toucher-role anim there.
     PlayPairedSimpleAnim(akInitiator, akTarget, 0.0, 0.0, rotOffset, animA1, animA2, fTouchLoopDuration)
     ; Keep the escalation window alive so the chain can continue.
@@ -2936,20 +3024,11 @@ Function CapturedInspect_Execute(Actor akInitiator, Actor akTarget)
     a2[1] = "Babo_CapturedBoob_A1"
     a2[2] = "Babo_CapturedPussy_A1"
 
-    PlayPairedSequence(akInitiator, akTarget, 0.0, 0.0, 180.0, a1, a2, fSequenceStageTimer, True)
-
-    If _bQTEDefeated
-        Debug.Trace("[SNBaka] Execute: QTE defeated — calling DefeatGroundWindow. attacker=" + akInitiator.GetDisplayName() + " victim=" + akTarget.GetDisplayName())
-        _bQTEDefeated = False
-        _UnlockAttackerOnly(akInitiator)
-        _DefeatGroundWindow(akInitiator, akTarget)
-    Else
-        If !_bAELVictimEscaped
-            _RecoveryPeriod(akTarget, akInitiator, 10.0)
-        EndIf
-        _CueResistOutcome("baka_forced", akInitiator, akTarget)
-        UnlockBoth(akInitiator, akTarget)
-    EndIf
+    ; No QTE and no knockdown from the menu — play the sequence through, then release.
+    ; (The downed-victim re-down version is _DownedReplay, used by the second menu.)
+    PlayPairedSequence(akInitiator, akTarget, 0.0, 0.0, 180.0, a1, a2, fSequenceStageTimer, False)
+    _CueResistOutcome("baka_forced", akInitiator, akTarget)
+    UnlockBoth(akInitiator, akTarget)
 EndFunction
 
 ; --- Investigate --- [FEMALE TARGET REQUIRED] [bResistable]
@@ -2981,20 +3060,13 @@ Function Investigate_Execute(Actor akInitiator, Actor akTarget)
     a2[1] = "Babo_Investigation_S02_A01"
     a2[2] = "Babo_Investigation_S03_A01"
 
-    PlayPairedSequence(akInitiator, akTarget, 0.0, 0.0, 180.0, a1, a2, fSequenceStageTimer, True)
-
-    If _bQTEDefeated
-        Debug.Trace("[SNBaka] Execute: QTE defeated — calling DefeatGroundWindow. attacker=" + akInitiator.GetDisplayName() + " victim=" + akTarget.GetDisplayName())
-        _bQTEDefeated = False
-        _UnlockAttackerOnly(akInitiator)
-        _DefeatGroundWindow(akInitiator, akTarget)
-    Else
-        If !_bAELVictimEscaped
-            _RecoveryPeriod(akTarget, akInitiator, 10.0)
-        EndIf
-        _CueResistOutcome("baka_forced", akInitiator, akTarget)
-        UnlockBoth(akInitiator, akTarget)
-    EndIf
+    ; No QTE and no knockdown from the menu — play the sequence through, then release.
+    ; (The downed-victim re-down version is _DownedReplay, used by the second menu.)
+    ; Investigation stage 0 is authored with the aggressor turned 180; force only akA1 flipped
+    ; on stage 0 (afA1Stage0Rot=180), restored from stage 1 on. Stages 2-3 already look right.
+    PlayPairedSequence(akInitiator, akTarget, 0.0, 0.0, 180.0, a1, a2, fSequenceStageTimer, False, True, 180.0)
+    _CueResistOutcome("baka_forced", akInitiator, akTarget)
+    UnlockBoth(akInitiator, akTarget)
 EndFunction
 
 ; --- Struggle --- [bResistable]
@@ -3229,6 +3301,7 @@ Function ShowingOffBody_Execute(Actor akInitiator, Actor akTarget)
         akInitiator.GetDisplayName() + " shows off their body to " + akTarget.GetDisplayName() + ".", \
         akInitiator, akTarget)
 
+    _ClearTearsForAffection(akInitiator, akTarget)
     PlayPairedSimpleAnim(akInitiator, akTarget, \
         0.0, 0.0, 180.0, \
         "BaboShowingOffBodyA2", "BaboShowingOffBodyA1", \
@@ -3333,11 +3406,18 @@ Function Interact_ShowMenu(Actor akTarget, Actor akCaster)
         Return
     EndIf
 
-    ; If the target is currently downed (QTE defeat, drug, etc.), skip the menu entirely
-    ; and escalate directly. The victim's lock is expected in this state, so this check
-    ; must come before the IsActorLocked guard below.
+    ; If the target is currently downed (QTE defeat, drug, etc.), open the downed-victim
+    ; menu (Escalate / Investigate / Inspect / Stand Back) instead of the normal interact
+    ; menu. The victim's lock is expected in this state, so this check must come before
+    ; the IsActorLocked guard below. Vanilla (no PrismaUI) keeps the old auto-escalate.
     If StorageUtil.GetIntValue(akTarget, "SNBaka.OnGround", 0) == 1
-        Escalate_Execute(akCaster, akTarget)
+        If SNBakaUI.IsAvailable()
+            _pendingCaster = akCaster
+            _pendingTarget = akTarget
+            SNBakaUI.ShowDownedMenu(akCaster, akTarget)
+        Else
+            Escalate_Execute(akCaster, akTarget)
+        EndIf
         Return
     EndIf
 
@@ -3506,6 +3586,12 @@ Function _DispatchInteractAction(Int choice)
         OralOnTarget_Execute(cst, tgt)     ; Suck Privates
     ElseIf choice == 21
         PlayPrivates_Execute(cst, tgt)     ; Play Privates
+    ElseIf choice == 22
+        Investigate_Execute(cst, tgt)      ; Investigate
+    ElseIf choice == 23
+        CapturedInspect_Execute(cst, tgt)  ; Inspect (captured)
+    ElseIf choice == 24
+        ArmHold_Execute(cst, tgt)          ; Arm Hold (affectionate)
     EndIf
 EndFunction
 
@@ -3584,6 +3670,104 @@ Function Escalate_Execute(Actor akInitiator, Actor akTarget)
     SkyrimNetApi.RegisterEvent("baka_escalate", \
         akInitiator.GetDisplayName() + " moves in on the helpless " + akTarget.GetDisplayName() + ".", \
         akInitiator, akTarget)
+EndFunction
+
+; --- Downed-victim menu dispatch ---
+; Called by the DLL (SNBaka_MenuChoice "downed" mode) when the player picks an option from
+; the menu shown by pressing the power on a downed victim. Runs on its own stack; the actual
+; work for Investigate/Inspect/Stand Back is handed to the running _DefeatGroundWindow loop
+; via flags so the victim stays owned by one place. choice:
+;   0 = Escalate (straight to the choke/sex escalation, as before)
+;   1 = Investigate    2 = Inspect (play the anim through, no QTE, then re-down + reset timer)
+;   3 = Stand Back     (exit the window: stagger -> stand up -> regain control)
+;  <0 = cancel (victim stays downed; window keeps running)
+Function _DispatchDownedAction(Int choice, Actor akCaster, Actor akVictim)
+    Debug.Trace("[SNBaka] _DispatchDownedAction: choice=" + choice + " caster=" + akCaster + " victim=" + akVictim)
+    If !akCaster || !akVictim
+        Return
+    EndIf
+    ; Only valid while the victim is genuinely still downed (the ground window is running).
+    If StorageUtil.GetIntValue(akVictim, "SNBaka.OnGround", 0) != 1
+        Debug.Trace("[SNBaka] _DispatchDownedAction: victim no longer downed — ignoring")
+        Return
+    EndIf
+    If choice == 0
+        Escalate_Execute(akCaster, akVictim)
+    ElseIf choice == 1
+        _iDownedReplay = 1
+    ElseIf choice == 2
+        _iDownedReplay = 2
+    ElseIf choice == 3
+        _bStandBack = True
+    Else
+        Debug.Trace("[SNBaka] _DispatchDownedAction: cancel — victim stays downed")
+    EndIf
+EndFunction
+
+; --- Downed replay (Investigate / Inspect on an already-downed victim) ---
+; Plays the inspection sequence to completion with NO QTE, then drops the victim back to the
+; ground. Called from inside _DefeatGroundWindow's wait loop; the loop resets its timer after.
+; which: 1 = Investigate (Babo_Investigation), 2 = Inspect (Babo_Captured).
+Function _DownedReplay(Actor akA1, Actor akA2, Int which)
+    Debug.Trace("[SNBaka] _DownedReplay: A1=" + akA1.GetDisplayName() + " A2=" + akA2.GetDisplayName() + " which=" + which)
+    If !akA1 || !akA2 || akA2.IsDead()
+        Return
+    EndIf
+
+    String[] a1 = new String[3]
+    String[] a2 = new String[3]
+    String what = "investigates "
+    Float s0rot = 0.0   ; Investigation flips the aggressor on stage 0 (see PlayPairedSequence)
+    If which == 2
+        a1[0] = "Babo_Captured_A2"
+        a1[1] = "Babo_CapturedBoob_A2"
+        a1[2] = "Babo_CapturedPussy_A2"
+        a2[0] = "Babo_Captured_A1"
+        a2[1] = "Babo_CapturedBoob_A1"
+        a2[2] = "Babo_CapturedPussy_A1"
+        what = "inspects the captured "
+        RecordAnimation(akA1, "CapturedInspect", akA2.GetDisplayName())
+    Else
+        a1[0] = "Babo_Investigation_S01_A02"
+        a1[1] = "Babo_Investigation_S02_A02"
+        a1[2] = "Babo_Investigation_S03_A02"
+        a2[0] = "Babo_Investigation_S01_A01"
+        a2[1] = "Babo_Investigation_S02_A01"
+        a2[2] = "Babo_Investigation_S03_A01"
+        RecordAnimation(akA1, "Investigate", akA2.GetDisplayName())
+        s0rot = 180.0
+    EndIf
+
+    _CueOngoing("baka_forced", \
+        akA1.GetDisplayName() + " " + what + "the helpless " + akA2.GetDisplayName() + "'s body as they lie defeated.", \
+        akA1, akA2)
+    PlayPanicSound(akA2)
+    _StartTears(akA2)
+
+    ; Re-lock the (currently free) attacker; the victim is still owned by the ground window.
+    StorageUtil.SetIntValue(akA1, "SNBaka.Locked", 1)
+    ; Bring the victim up out of bleedout + clear the ground-hold flags so _SetupPair (inside
+    ; PlayPairedSequence) can position and drive their skeleton cleanly.
+    akA2.SetRestrained(False)
+    akA2.SetDontMove(False)
+    _Recover(akA2)
+    Utility.Wait(0.3)
+
+    ; Full inspection sequence, NO QTE — it runs every stage through, then _CleanupPair resets.
+    PlayPairedSequence(akA1, akA2, 0.0, 0.0, 180.0, a1, a2, fSequenceStageTimer, False, True, s0rot)
+
+    ; Drop the victim straight back down; the ground window resets its timer on return.
+    _Bleedout(akA2, akA1)
+    Utility.Wait(0.3)
+    If akA2 != PlayerRef
+        akA2.SetRestrained(True)
+        akA2.SetDontMove(True)
+        _PacifyActor(akA2, True)
+        _HoldActorAI(akA2, True)
+    EndIf
+    ; Free the attacker again so they stand back over the downed victim.
+    _UnlockAttackerOnly(akA1)
+    Debug.Trace("[SNBaka] _DownedReplay: complete — victim re-downed")
 EndFunction
 
 ; ============================================================
